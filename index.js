@@ -9,14 +9,12 @@ const FIREBASE_URL = process.env.FIREBASE_URL;
 const userStates = {}; 
 
 // --- 🌐 DYNAMIC DATA FETCHING FROM FIREBASE ---
-// Fetches services dynamically from specific Firebase endpoints
 async function getServiceData(endpoint) {
     try {
         const response = await fetch(`${FIREBASE_URL}/services/${endpoint}.json`);
         const data = await response.json();
         if (!data) return [];
         
-        // Convert Firebase object into an array
         return Object.keys(data).map(key => ({
             id: key,
             name: data[key].name || "Unnamed Service",
@@ -32,12 +30,11 @@ async function getServiceData(endpoint) {
     }
 }
 
-// Utility to delay messages slightly to avoid WhatsApp spam bans and maintain order
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function startBot() {
     if (!FIREBASE_URL) {
-        console.log("❌ ERROR: FIREBASE_URL is missing in environment variables/secrets!");
+        console.log("❌ ERROR: FIREBASE_URL is missing!");
         process.exit(1);
     }
 
@@ -47,30 +44,35 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: false, // We will print it manually below
         logger: pino({ level: 'silent' }),
-        browser: ["W-Assistant", "Digital", "1.0"] 
+        browser: ["W-Assistant", "Chrome", "1.0"] 
     });
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.clear(); 
-            console.log('\n==================================================');
+            // FIX: Removed console.clear() and added empty lines so GitHub Actions doesn't break the QR Code
+            console.log('\n\n\n'); 
+            console.log('==================================================');
             console.log('📱 SCAN THE QR CODE BELOW TO LINK W-ASSISTANT 📱');
-            console.log('==================================================\n');
+            console.log('==================================================');
             qrcode.generate(qr, { small: true }); 
+            console.log('\n\n\n');
         }
 
-        if (connection === 'open') console.log('✅ W-ASSISTANT IS ONLINE AND READY!');
+        if (connection === 'open') {
+            console.log('✅ W-ASSISTANT IS ONLINE AND READY!');
+        }
+
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason !== DisconnectReason.loggedOut) {
                 console.log('🔄 Connection closed, reconnecting...');
                 startBot();
             } else {
-                console.log('❌ Logged out from WhatsApp. Please delete "session_data" and rescan QR.');
+                console.log('❌ Logged out from WhatsApp. Delete "session_data" and rescan.');
             }
         }
     });
@@ -80,11 +82,11 @@ async function startBot() {
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         if (!msg.message || msg.key.remoteJid === 'status@broadcast') return;
-        if (msg.key.fromMe) return; // Loop Protection
+        if (msg.key.fromMe) return; 
 
         const sender = msg.key.remoteJid;
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
-        const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; // Preserve original casing for lead capture
+        const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
         console.log(`📩 Incoming from ${sender.split('@')[0]}: ${text}`);
 
@@ -95,17 +97,15 @@ async function startBot() {
             const customerWaNumber = sender.split('@')[0];
             const selectedCategory = userStates[sender].category;
 
-            // Build Lead Object matching requirements
             const newLead = {
-                name: "Provided in details", // Name is extracted from raw requirements text
+                name: "Provided in details",
                 phone: customerWaNumber,
                 service: selectedCategory,
                 selectedItem: "General Interest", 
-                requirement: rawText, // Stores Name, Phone, and Requirement provided by user
+                requirement: rawText, 
                 timestamp: new Date().toISOString()
             };
 
-            // Save lead securely via REST API to Firebase
             try {
                 await fetch(`${FIREBASE_URL}/leads.json`, {
                     method: 'POST',
@@ -120,7 +120,7 @@ async function startBot() {
                 text: `✅ *Request Received Successfully!*\n\nThank you for reaching out. Our team has received your requirement for *${selectedCategory}* and will contact you shortly.\n\nHave a great day! 🌟` 
             });
             
-            delete userStates[sender]; // Clear state
+            delete userStates[sender]; 
             return;
         }
 
@@ -146,14 +146,12 @@ async function startBot() {
         // 🛑 STEP 1: MAIN MENU & SERVICE SELECTION
         // ==========================================
 
-        // --- SHOW SERVICES ---
         if (text === "services" || text === "menu" || text === "service") {
             const serviceMenu = `🚀 *Welcome to W-Assistant Services!* 🚀\n\nWe offer premium digital solutions to scale your business. Please choose a category:\n\n1️⃣ 🌐 *Website Development*\n2️⃣ 🎨 *Graphics Designing*\n3️⃣ 📢 *Advertisement / Marketing*\n\n_Reply with the service name (e.g., 'website', 'graphics', or 'ads') to explore our demos and packages!_`;
             await sock.sendMessage(sender, { text: serviceMenu });
             return;
         }
 
-        // --- SHOW DEMOS: WEBSITE DEVELOPMENT ---
         else if (text.includes("website") || text.includes("web development") || text === "1") {
             await sock.sendMessage(sender, { text: "⏳ Fetching our best Website Development portfolios..." });
             const websites = await getServiceData('websites');
@@ -174,7 +172,7 @@ async function startBot() {
                 } else {
                     await sock.sendMessage(sender, { text: caption });
                 }
-                await delay(600); // Prevent WhatsApp rate-limiting
+                await delay(600); 
             }
 
             userStates[sender] = { step: 'WAITING_FOR_INTEREST', category: 'Website Development' };
@@ -183,7 +181,6 @@ async function startBot() {
             return;
         }
 
-        // --- SHOW DEMOS: GRAPHICS DESIGNING ---
         else if (text.includes("graphic") || text.includes("design") || text === "2") {
             await sock.sendMessage(sender, { text: "⏳ Fetching our creative Graphics & Design samples..." });
             const graphics = await getServiceData('graphics');
@@ -213,7 +210,6 @@ async function startBot() {
             return;
         }
 
-        // --- SHOW DEMOS: ADVERTISEMENT / MARKETING ---
         else if (text.includes("ad") || text.includes("marketing") || text.includes("seo") || text === "3") {
             await sock.sendMessage(sender, { text: "⏳ Fetching our Marketing & Advertisement packages..." });
             const ads = await getServiceData('ads');
@@ -242,13 +238,11 @@ async function startBot() {
             return;
         }
 
-        // --- GREETINGS & DEFAULT HANDLER ---
         else if (text.includes("hi") || text.includes("hello") || text.includes("hey") || text === "start") {
             const welcomeMsg = `Welcome to *W-Assistant*! 👋\nYour 24/7 Digital Agency Partner.\n\nWe provide professional digital solutions to help you grow your business.\n\nType *services* to see our offerings!`;
             await sock.sendMessage(sender, { text: welcomeMsg });
         }
         else {
-            // Unrecognized input fallback
             await sock.sendMessage(sender, { 
                 text: `🤔 I didn't quite catch that.\n\nType *services* to explore our Digital Services, or reply to an active prompt if you were exploring a demo!` 
             });
@@ -256,4 +250,4 @@ async function startBot() {
     });
 }
 
-startBot().catch(err => console.log("Critical Error: " + err));
+startBot().catch(err => console.log("Critical Error: " + err));     
