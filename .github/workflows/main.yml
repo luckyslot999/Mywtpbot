@@ -1,9 +1,9 @@
-name: JavaGoat-WhatsApp-Bot
+name: W-Assistant-WhatsApp-Bot
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */5 * * *' 
+    - cron: '0 */5 * * *' # Runs every 5 hours to keep the bot alive
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Start AI Bot
+      - name: Start W-Assistant AI Bot
         env:
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
         run: npm start
