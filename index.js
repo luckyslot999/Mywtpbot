@@ -1,13 +1,11 @@
- const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 
 const FIREBASE_URL = process.env.FIREBASE_URL;
 
-// State management for users
-// { step, lang, category, isMuted }
+// یوزرز کا ڈیٹا سنبھالنے کے لیے
 const userStates = {}; 
 
-// --- DYNAMIC DATA FETCHING ---
 async function getServiceData(endpoint) {
     try {
         if (!FIREBASE_URL) return [];
@@ -27,27 +25,51 @@ async function getServiceData(endpoint) {
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// --- BILINGUAL TEXT DICTIONARY ---
+// ==========================================
+// 🌐 DICTIONARY: ENGLISH & URDU MESSAGES
+// ==========================================
 const langText = {
     en: {
-        mainMenu: `🤖 *Hello! I am Wajid Ali's Virtual Assistant.*\n\nHere are our Professional Digital Services. Reply with a number to explore:\n\n1️⃣ Website Development 🌐\n2️⃣ Graphics Designing 🎨\n3️⃣ Advertisement / Marketing 📢\n4️⃣ Talk to Wajid Ali (Human) 👨‍💻`,
-        webDemos: `🌐 *Website Development Demos*\n\nHere are some of our successful E-Commerce projects:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*Are you interested?*\nReply *YES* to place an order, or reply *0* to go back to the Main Menu.`,
-        graphicsDemos: `🎨 *Graphics Designing*\n\nWe design high-quality Logos, Social Media Posts, and Banners.\n\n*Are you interested?*\nReply *YES* to place an order, or reply *0* to go back to the Main Menu.`,
-        adsDemos: `📢 *Advertisement & Marketing*\n\nGrow your business with our Facebook, Google Ads, and SEO services.\n\n*Are you interested?*\nReply *YES* to place an order, or reply *0* to go back to the Main Menu.`,
-        askDetails: `Awesome! 🎉\n\nTo proceed, please reply with your:\n1. *Full Name*\n2. *Phone Number*\n3. *Requirement Details*\n_(Please send all info in a single message. No physical address is required.)_`,
-        successMsg: `✅ *Request Received!*\n\nThank you! I have forwarded your details to Wajid Ali. He will review your requirement and contact you shortly. Have a great day! 🌟`,
-        humanMute: `📞 *Request Forwarded!*\n\nI have notified Wajid Ali. He will check your message and reply to you himself shortly. I (the bot) will stop responding to you now so you can talk to him.`,
-        invalidInput: `🤔 Invalid choice.\n\nPlease reply with the correct number, or type *0* to see the Main Menu again.`
+        welcomeMenu: `🤖 *Hello! I am Wajid Ali's Virtual Assistant.*\n\nHow can I help you today? Please reply with a number:\n\n1️⃣ View Our Digital Services 🚀\n2️⃣ Talk to Wajid Ali 👨‍💻\n3️⃣ زبان تبدیل کریں (Change to Urdu) 🇵🇰`,
+        
+        servicesMenu: `🚀 *Our Premium Services*\n\nPlease select a service to view details and demos:\n\n1️⃣ Website Development 🌐\n2️⃣ App & Game Development 📱\n3️⃣ Graphics Designing 🎨\n4️⃣ Advertisement & Digital Marketing 📢\n5️⃣ WhatsApp Bot Development 🤖\n\n_Reply with 0 anytime to go back._`,
+        
+        demos: {
+            web: `🌐 *Website Development*\n\nHere are some of our successful E-Commerce projects:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*Would you like to place an order?*\nReply *YES* to confirm, or *0* to go back.`,
+            app: `📱 *App & Game Development*\n\nWe build high-performance Android & iOS Apps and engaging Mobile Games.\n\n*Would you like to place an order?*\nReply *YES* to confirm, or *0* to go back.`,
+            graphics: `🎨 *Graphics Designing*\n\nWe design professional Logos, UI/UX, Banners, and Social Media Posts.\n\n*Would you like to place an order?*\nReply *YES* to confirm, or *0* to go back.`,
+            ads: `📢 *Advertisement & Marketing*\n\nScale your business with our expert Facebook Ads, Google Ads, and SEO strategies.\n\n*Would you like to place an order?*\nReply *YES* to confirm, or *0* to go back.`,
+            bot: `🤖 *WhatsApp Bot Development*\n\nAutomate your business 24/7 with a smart AI WhatsApp Assistant (just like me!).\n\n*Would you like to place an order?*\nReply *YES* to confirm, or *0* to go back.`
+        },
+
+        askDetails: `Awesome! 🎉 Let's confirm your order.\n\nPlease reply with your:\n1. *Full Name*\n2. *Phone Number*\n3. *Short Details of your requirement*\n_(Please send all info in a single message)_`,
+        
+        orderConfirmed: `✅ *Your Order is Confirmed!*\n\nThank you! I have securely saved your request. *Wajid Ali* will review your details and contact you shortly to start the work.\n\nHave a great day! 🌟`,
+        
+        humanMute: `📞 *Request Forwarded!*\n\nI have notified Wajid Ali. He will review your message and reply to you shortly. Please wait for his response. Thank you! 🌟`,
+        
+        invalidInput: `🤔 Invalid choice.\n\nPlease reply with the correct number, or type *0* to see the Main Menu.`
     },
     ur: {
-        mainMenu: `🤖 *ہیلو! میں واجد علی کا ورچوئل اسسٹنٹ ہوں۔*\n\nیہ ہماری ڈیجیٹل سروسز ہیں۔ تفصیلات کے لیے متعلقہ نمبر کا ریپلائی کریں:\n\n1️⃣ ویب سائٹ ڈیویلپمنٹ 🌐\n2️⃣ گرافکس ڈیزائننگ 🎨\n3️⃣ ایڈورٹائزمنٹ / مارکیٹنگ 📢\n4️⃣ واجد علی سے بات کریں (انسان) 👨‍💻`,
-        webDemos: `🌐 *ویب سائٹ ڈیویلپمنٹ ڈیموز*\n\nیہ ہمارے کچھ کامیاب ای کامرس پراجیکٹس ہیں:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*کیا آپ آرڈر دینا چاہتے ہیں؟*\nآگے بڑھنے کے لیے *YES* یا *ہاں* لکھ کر بھیجیں، یا مین مینو میں جانے کے لیے *0* بھیجیں۔`,
-        graphicsDemos: `🎨 *گرافکس ڈیزائننگ*\n\nہم بہترین کوالٹی کے لوگوز، سوشل میڈیا پوسٹس، اور بینرز ڈیزائن کرتے ہیں۔\n\n*کیا آپ آرڈر دینا چاہتے ہیں؟*\nآگے بڑھنے کے لیے *YES* لکھ کر بھیجیں، یا مین مینو میں جانے کے لیے *0* بھیجیں۔`,
-        adsDemos: `📢 *ایڈورٹائزمنٹ / مارکیٹنگ*\n\nفیس بک ایڈز، گوگل ایڈز اور SEO کے ذریعے اپنے بزنس کو بڑھائیں۔\n\n*کیا آپ آرڈر دینا چاہتے ہیں؟*\nآگے بڑھنے کے لیے *YES* لکھ کر بھیجیں، یا مین مینو میں جانے کے لیے *0* بھیجیں۔`,
-        askDetails: `بہت خوب! 🎉\n\nآرڈر مکمل کرنے کے لیے براہ کرم ایک ہی میسج میں یہ تفصیلات لکھ کر بھیجیں:\n1. *مکمل نام*\n2. *فون نمبر*\n3. *اپنی ضرورت (Requirement)*\n_(کسی فزیکل ایڈریس کی ضرورت نہیں ہے۔)_`,
-        successMsg: `✅ *درخواست موصول ہو گئی ہے!*\n\nشکریہ! میں نے آپ کی تفصیلات واجد علی کو بھیج دی ہیں۔ وہ جلد ہی آپ کی ریکوائرمنٹ چیک کر کے آپ سے رابطہ کریں گے۔ 🌟`,
-        humanMute: `📞 *درخواست موصول ہو گئی!*\n\nمیں نے واجد علی کو میسج کر دیا ہے۔ وہ تھوڑی دیر میں آپ کو خود ریپلائی کریں گے۔ اب میں (بوٹ) آپ کو میسج نہیں کروں گا تاکہ آپ ان سے سکون سے بات کر سکیں۔`,
-        invalidInput: `🤔 آپ کا جواب درست نہیں۔\n\nبراہ کرم صحیح آپشن منتخب کریں، یا مین مینو میں جانے کے لیے *0* ٹائپ کریں۔`
+        welcomeMenu: `🤖 *ہیلو! میں واجد علی کا ورچوئل اسسٹنٹ ہوں۔*\n\nمیں آپ کی کیا مدد کر سکتا ہوں؟ براہ کرم ایک نمبر بھیجیں:\n\n1️⃣ ہماری ڈیجیٹل سروسز دیکھیں 🚀\n2️⃣ واجد علی سے بات کریں 👨‍💻\n3️⃣ Change to English (زبان تبدیل کریں) 🇬🇧`,
+        
+        servicesMenu: `🚀 *ہماری پروفیشنل سروسز*\n\nتفصیلات اور ڈیموز دیکھنے کے لیے ایک نمبر منتخب کریں:\n\n1️⃣ ویب سائٹ ڈیویلپمنٹ 🌐\n2️⃣ ایپ اور گیم ڈیویلپمنٹ 📱\n3️⃣ گرافکس ڈیزائننگ 🎨\n4️⃣ ایڈورٹائزمنٹ / ڈیجیٹل مارکیٹنگ 📢\n5️⃣ واٹس ایپ بوٹ ڈیویلپمنٹ 🤖\n\n_پیچھے جانے کے لیے کسی بھی وقت 0 بھیجیں۔_`,
+        
+        demos: {
+            web: `🌐 *ویب سائٹ ڈیویلپمنٹ*\n\nیہ ہمارے کچھ کامیاب ای کامرس پراجیکٹس ہیں:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\nآرڈر کے لیے *YES* لکھیں، یا پیچھے جانے کے لیے *0* بھیجیں۔`,
+            app: `📱 *ایپ اور گیم ڈیویلپمنٹ*\n\nہم بہترین کوالٹی کی اینڈرائیڈ/iOS ایپس اور موبائل گیمز بناتے ہیں۔\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\nآرڈر کے لیے *YES* لکھیں، یا پیچھے جانے کے لیے *0* بھیجیں۔`,
+            graphics: `🎨 *گرافکس ڈیزائننگ*\n\nہم پروفیشنل لوگوز، UI/UX اور سوشل میڈیا پوسٹس ڈیزائن کرتے ہیں۔\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\nآرڈر کے لیے *YES* لکھیں، یا پیچھے جانے کے لیے *0* بھیجیں۔`,
+            ads: `📢 *ایڈورٹائزمنٹ اور مارکیٹنگ*\n\nفیس بک ایڈز، گوگل ایڈز اور SEO کے ذریعے اپنی سیلز بڑھائیں۔\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\nآرڈر کے لیے *YES* لکھیں، یا پیچھے جانے کے لیے *0* بھیجیں۔`,
+            bot: `🤖 *واٹس ایپ بوٹ ڈیویلپمنٹ*\n\nاپنے بزنس کے لیے ایک آٹومیٹک واٹس ایپ بوٹ بنوائیں جو 24 گھنٹے کام کرے۔\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\nآرڈر کے لیے *YES* لکھیں، یا پیچھے جانے کے لیے *0* بھیجیں۔`
+        },
+
+        askDetails: `بہت خوب! 🎉 آئیے آپ کا آرڈر کنفرم کرتے ہیں۔\n\nبراہ کرم ایک ہی میسج میں یہ تفصیلات بھیجیں:\n1. *آپ کا نام*\n2. *فون نمبر*\n3. *آپ کو کیسا پروجیکٹ چاہیے؟ (مختصر تفصیل)*`,
+        
+        orderConfirmed: `✅ *آپ کا آرڈر کنفرم ہو گیا ہے!*\n\nشکریہ! میں نے آپ کی ریکوائرمنٹ محفوظ کر لی ہے۔ *واجد علی* بہت جلد آپ کی تفصیلات چیک کر کے آپ سے رابطہ کریں گے۔ 🌟`,
+        
+        humanMute: `📞 *درخواست موصول ہو گئی!*\n\nمیں نے واجد علی کو اطلاع دے دی ہے۔ وہ جلد ہی آپ کا میسج چیک کر کے آپ سے رابطہ کریں گے۔ براہ کرم ان کے جواب کا انتظار کریں۔ شکریہ! 🌟`,
+        
+        invalidInput: `🤔 آپ کا جواب درست نہیں۔\n\nبراہ کرم صحیح نمبر منتخب کریں، یا مین مینو میں جانے کے لیے *0* ٹائپ کریں۔`
     }
 };
 
@@ -68,11 +90,10 @@ async function startBot() {
         
         if (qr) {
             const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-            console.log('\n\n=============================================================');
-            console.log('🔗 CLICK THE LINK BELOW TO VIEW & SCAN THE QR CODE 🔗');
-            console.log('👉 ' + qrImageUrl);
-            console.log('⚠️ Note: Click fast! The QR code refreshes every 20 seconds.');
-            console.log('=============================================================\n\n');
+            console.log('\n=============================================================');
+            console.log('🔄 NEW QR CODE GENERATED! (WhatsApp refreshes it every 30s)');
+            console.log('🔗 CLICK FAST TO SCAN: 👉 ' + qrImageUrl);
+            console.log('=============================================================\n');
         }
 
         if (connection === 'open') console.log('✅ W-ASSISTANT IS ONLINE AND READY!');
@@ -82,7 +103,7 @@ async function startBot() {
                 console.log('🔄 Reconnecting...');
                 startBot();
             } else {
-                console.log('❌ Logged out. Delete "session_data" and rescan.');
+                console.log('❌ Logged out. Delete "session_data" folder and rescan.');
             }
         }
     });
@@ -98,98 +119,94 @@ async function startBot() {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
         const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        // Initialize user state if not exists
+        // Initialize default user state
         if (!userStates[sender]) {
-            userStates[sender] = { step: 'CHOOSE_LANGUAGE', lang: 'en', isMuted: false };
+            userStates[sender] = { step: 'WELCOME_MENU', lang: 'en', isMuted: false };
+            await sock.sendMessage(sender, { text: langText['en'].welcomeMenu });
+            return;
         }
 
-        // IF USER IS MUTED (Talking to Human), DO NOT RESPOND.
+        // Muted logic - Wait for Wajid Ali to reply
         if (userStates[sender].isMuted) {
-            // Secret command to un-mute bot
             if (text === "bot wake up") {
                 userStates[sender].isMuted = false;
-                userStates[sender].step = 'CHOOSE_LANGUAGE';
-                await sock.sendMessage(sender, { text: "🤖 Bot has been reactivated for you." });
+                userStates[sender].step = 'WELCOME_MENU';
+                await sock.sendMessage(sender, { text: "🤖 Service Reactivated!\n\n" + langText[userStates[sender].lang].welcomeMenu });
             }
             return; 
         }
 
         const userState = userStates[sender];
         const lang = userState.lang;
+        const t = langText[lang];
 
-        // GLOBAL: RETURN TO MAIN MENU
         if (text === '0' || text === 'menu') {
-            userState.step = 'MAIN_MENU';
-            await sock.sendMessage(sender, { text: langText[lang].mainMenu });
+            userState.step = 'WELCOME_MENU';
+            await sock.sendMessage(sender, { text: t.welcomeMenu });
             return;
         }
 
-        // 🛑 STEP 1: CHOOSE LANGUAGE
-        if (userState.step === 'CHOOSE_LANGUAGE') {
-            if (text === '1') {
-                userState.lang = 'en';
-                userState.step = 'MAIN_MENU';
-                await sock.sendMessage(sender, { text: langText['en'].mainMenu });
-            } else if (text === '2') {
-                userState.lang = 'ur';
-                userState.step = 'MAIN_MENU';
-                await sock.sendMessage(sender, { text: langText['ur'].mainMenu });
-            } else {
-                const langPrompt = `🤖 *Welcome! I am Wajid Ali's Virtual Assistant.*\n\nPlease select your preferred language / براہ کرم اپنی زبان منتخب کریں:\n\nReply *1* for English 🇬🇧\nReply *2* for Urdu 🇵🇰 (اردو)`;
-                await sock.sendMessage(sender, { text: langPrompt });
+        // 🛑 STEP 1: WELCOME MENU HANDLING
+        if (userState.step === 'WELCOME_MENU') {
+            if (text === '1') { 
+                userState.step = 'SERVICES_MENU';
+                await sock.sendMessage(sender, { text: t.servicesMenu });
+            } 
+            else if (text === '2') { 
+                userState.isMuted = true;
+                await sock.sendMessage(sender, { text: t.humanMute });
+            } 
+            else if (text === '3') { 
+                userState.lang = lang === 'en' ? 'ur' : 'en'; 
+                await sock.sendMessage(sender, { text: langText[userState.lang].welcomeMenu });
+            } 
+            else {
+                await sock.sendMessage(sender, { text: t.invalidInput });
             }
             return;
         }
 
-        // 🛑 STEP 2: MAIN MENU SELECTION
-        if (userState.step === 'MAIN_MENU') {
-            if (text === '1') { // Website
-                userState.step = 'WAITING_FOR_INTEREST';
-                userState.category = 'Website Development';
-                await sock.sendMessage(sender, { text: langText[lang].webDemos });
+        // 🛑 STEP 2: SERVICES MENU HANDLING
+        if (userState.step === 'SERVICES_MENU') {
+            const categories = {
+                '1': { name: 'Website Development', demo: t.demos.web },
+                '2': { name: 'App & Game Development', demo: t.demos.app },
+                '3': { name: 'Graphics Designing', demo: t.demos.graphics },
+                '4': { name: 'Advertisement & Marketing', demo: t.demos.ads },
+                '5': { name: 'WhatsApp Bot Development', demo: t.demos.bot }
+            };
+
+            if (categories[text]) {
+                userState.step = 'WAITING_FOR_ORDER_CONFIRM';
+                userState.category = categories[text].name;
+                await sock.sendMessage(sender, { text: categories[text].demo });
                 
-                // Fetch dynamic data silently if available
-                const fbData = await getServiceData('websites');
+                const fbData = await getServiceData('websites'); 
                 for (const item of fbData) {
                     if (item.imageUrl) {
                         await delay(600);
-                        await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption: `${item.name}\n${item.description}` });
+                        await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption: `${item.name}` });
                     }
                 }
-            } 
-            else if (text === '2') { // Graphics
-                userState.step = 'WAITING_FOR_INTEREST';
-                userState.category = 'Graphics Designing';
-                await sock.sendMessage(sender, { text: langText[lang].graphicsDemos });
-            } 
-            else if (text === '3') { // Ads
-                userState.step = 'WAITING_FOR_INTEREST';
-                userState.category = 'Advertisement';
-                await sock.sendMessage(sender, { text: langText[lang].adsDemos });
-            } 
-            else if (text === '4') { // Human
-                userState.isMuted = true; // Mutes the bot for this user
-                await sock.sendMessage(sender, { text: langText[lang].humanMute });
-            } 
-            else {
-                await sock.sendMessage(sender, { text: langText[lang].invalidInput });
-            }
-            return;
-        }
-
-        // 🛑 STEP 3: ASK FOR DETAILS (INTEREST CONFIRMED)
-        if (userState.step === 'WAITING_FOR_INTEREST') {
-            if (text.includes('yes') || text.includes('y') || text.includes('ہاں')) {
-                userState.step = 'WAITING_FOR_LEAD_DETAILS';
-                await sock.sendMessage(sender, { text: langText[lang].askDetails });
             } else {
-                await sock.sendMessage(sender, { text: langText[lang].invalidInput });
+                await sock.sendMessage(sender, { text: t.invalidInput });
             }
             return;
         }
 
-        // 🛑 STEP 4: SAVE LEAD TO FIREBASE
-        if (userState.step === 'WAITING_FOR_LEAD_DETAILS') {
+        // 🛑 STEP 3: ORDER CONFIRMATION
+        if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
+            if (text.includes('yes') || text.includes('y') || text.includes('ہاں')) {
+                userState.step = 'WAITING_FOR_DETAILS';
+                await sock.sendMessage(sender, { text: t.askDetails });
+            } else {
+                await sock.sendMessage(sender, { text: t.invalidInput });
+            }
+            return;
+        }
+
+        // 🛑 STEP 4: COLLECT DETAILS
+        if (userState.step === 'WAITING_FOR_DETAILS') {
             const newLead = {
                 phone: sender.split('@')[0],
                 service: userState.category,
@@ -209,9 +226,14 @@ async function startBot() {
                 }
             }
 
-            userState.step = 'CHOOSE_LANGUAGE'; // Reset state after success
-            await sock.sendMessage(sender, { text: langText[lang].successMsg });
+            userState.step = 'WELCOME_MENU'; 
+            await sock.sendMessage(sender, { text: t.orderConfirmed });
             return;
+        }
+
+        if (!['1','2','3','4','5','0'].includes(text)) {
+            userState.step = 'WELCOME_MENU';
+            await sock.sendMessage(sender, { text: t.welcomeMenu });
         }
     });
 }
