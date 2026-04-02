@@ -1,13 +1,23 @@
 {
-  "name": "javagoat-whatsapp-bot",
+  "name": "w-assistant-whatsapp-bot",
   "version": "1.0.0",
-  "description": "WhatsApp Bot linked to JavaGoat App",
+  "description": "Professional Service-Based WhatsApp Automation System for Digital Agency",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "baileys",
+    "automation",
+    "digital-agency",
+    "w-assistant"
+  ],
+  "author": "Your Agency Name",
+  "license": "ISC",
   "dependencies": {
-    "@whiskeysockets/baileys": "6.6.0",
+    "@whiskeysockets/baileys": "^6.7.0",
     "qrcode-terminal": "^0.12.0",
     "pino": "^8.19.0"
   }
