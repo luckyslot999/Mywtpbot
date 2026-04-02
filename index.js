@@ -5,31 +5,39 @@ const pino = require('pino');
 // 🌟 SECURE FIREBASE URL FROM GITHUB SECRETS 🌟
 const FIREBASE_URL = process.env.FIREBASE_URL;
 
-const orderStates = {}; 
+// State management for user conversation flow
+const userStates = {}; 
 
-// Function to fetch the dynamic menu from your App's Firebase
-async function getMenuFromApp() {
+// --- 🌐 DYNAMIC DATA FETCHING FROM FIREBASE ---
+// Fetches services dynamically from specific Firebase endpoints
+async function getServiceData(endpoint) {
     try {
-        const response = await fetch(`${FIREBASE_URL}/dishes.json`);
+        const response = await fetch(`${FIREBASE_URL}/services/${endpoint}.json`);
         const data = await response.json();
-        if (!data) return[];
+        if (!data) return [];
         
-        // Convert Firebase object into an array (now includes imageUrl)
+        // Convert Firebase object into an array
         return Object.keys(data).map(key => ({
             id: key,
-            name: data[key].name,
-            price: data[key].price,
-            imageUrl: data[key].imageUrl
+            name: data[key].name || "Unnamed Service",
+            price: data[key].price || "",
+            demoUrl: data[key].demoUrl || "",
+            imageUrl: data[key].imageUrl || "",
+            description: data[key].description || "",
+            category: data[key].category || ""
         }));
     } catch (error) {
-        console.error("Failed to fetch menu:", error);
-        return[];
+        console.error(`❌ Failed to fetch ${endpoint}:`, error);
+        return [];
     }
 }
 
+// Utility to delay messages slightly to avoid WhatsApp spam bans and maintain order
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function startBot() {
     if (!FIREBASE_URL) {
-        console.log("❌ ERROR: FIREBASE_URL is missing in GitHub Secrets!");
+        console.log("❌ ERROR: FIREBASE_URL is missing in environment variables/secrets!");
         process.exit(1);
     }
 
@@ -41,7 +49,7 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser:["S", "K", "1"] 
+        browser: ["W-Assistant", "Digital", "1.0"] 
     });
 
     sock.ev.on('connection.update', (update) => {
@@ -50,15 +58,20 @@ async function startBot() {
         if (qr) {
             console.clear(); 
             console.log('\n==================================================');
-            console.log('⚠️ QR CODE TOO BIG? CLICK "View raw logs" in top right!');
+            console.log('📱 SCAN THE QR CODE BELOW TO LINK W-ASSISTANT 📱');
             console.log('==================================================\n');
             qrcode.generate(qr, { small: true }); 
         }
 
-        if (connection === 'open') console.log('✅ JAVAGOAT AI IS ONLINE!');
+        if (connection === 'open') console.log('✅ W-ASSISTANT IS ONLINE AND READY!');
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            if (reason !== DisconnectReason.loggedOut) startBot();
+            if (reason !== DisconnectReason.loggedOut) {
+                console.log('🔄 Connection closed, reconnecting...');
+                startBot();
+            } else {
+                console.log('❌ Logged out from WhatsApp. Please delete "session_data" and rescan QR.');
+            }
         }
     });
 
@@ -70,114 +83,177 @@ async function startBot() {
         if (msg.key.fromMe) return; // Loop Protection
 
         const sender = msg.key.remoteJid;
-        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase();
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
+        const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; // Preserve original casing for lead capture
 
-        console.log(`📩 Query: ${text}`);
+        console.log(`📩 Incoming from ${sender.split('@')[0]}: ${text}`);
 
-        // --- 🛒 STEP 2: FINISH ORDER & SEND TO ADMIN PANEL ---
-        if (orderStates[sender]?.step === 'WAITING_FOR_ADDRESS') {
-            const customerDetails = text; // This now contains Name, Phone, and Address
-            const item = orderStates[sender].item;
+        // ==========================================
+        // 🛑 STEP 3: CAPTURE LEAD DETAILS
+        // ==========================================
+        if (userStates[sender]?.step === 'WAITING_FOR_LEAD_DETAILS') {
             const customerWaNumber = sender.split('@')[0];
+            const selectedCategory = userStates[sender].category;
 
-            // Match the exact format of your JavaGoat Admin Panel
-            const javaGoatOrder = {
-                userId: "whatsapp_" + customerWaNumber,
-                userEmail: "whatsapp@javagoat.com",
-                phone: customerWaNumber, // Keeps their WA number registered
-                address: customerDetails, // Saves Name, Phone, and Address typed by them
-                location: { lat: 0, lng: 0 },
-                items:[{
-                    id: item.id,
-                    name: item.name,
-                    price: parseFloat(item.price),
-                    img: item.imageUrl || "",
-                    quantity: 1
-                }],
-                total: (parseFloat(item.price) + 50).toFixed(2), // Price + 50 Delivery Fee
-                status: "Placed",
-                method: "Cash on Delivery (WhatsApp)",
+            // Build Lead Object matching requirements
+            const newLead = {
+                name: "Provided in details", // Name is extracted from raw requirements text
+                phone: customerWaNumber,
+                service: selectedCategory,
+                selectedItem: "General Interest", 
+                requirement: rawText, // Stores Name, Phone, and Requirement provided by user
                 timestamp: new Date().toISOString()
             };
 
-            // Save order securely via REST API
+            // Save lead securely via REST API to Firebase
             try {
-                await fetch(`${FIREBASE_URL}/orders.json`, {
+                await fetch(`${FIREBASE_URL}/leads.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(javaGoatOrder)
+                    body: JSON.stringify(newLead)
                 });
             } catch (error) {
-                console.log("Firebase Error: ", error);
+                console.log("❌ Firebase Lead Save Error: ", error);
             }
 
-            await sock.sendMessage(sender, { text: `✅ *Order Placed Successfully!* \n\nThank you! Your order for *${item.name}* is being prepared. \n\n*Total:* ₹${javaGoatOrder.total} (Inc. Delivery)\n*Status:* Preparing\n\nWe will deliver it to your address soon.` });
-            delete orderStates[sender]; 
+            await sock.sendMessage(sender, { 
+                text: `✅ *Request Received Successfully!*\n\nThank you for reaching out. Our team has received your requirement for *${selectedCategory}* and will contact you shortly.\n\nHave a great day! 🌟` 
+            });
+            
+            delete userStates[sender]; // Clear state
             return;
         }
 
-        // --- 🌟 STEP 1: START ORDER FLOW (WITH IMAGE & PHONE REQUEST) ---
-        if (text.startsWith("order ")) {
-            const productRequested = text.replace("order ", "").trim().toLowerCase();
-            const currentMenu = await getMenuFromApp();
-            
-            // Search the live database for the requested item
-            const matchedItem = currentMenu.find(item => item.name.toLowerCase().includes(productRequested));
-
-            if (!matchedItem) {
-                await sock.sendMessage(sender, { text: `❌ Sorry, we couldn't find *${productRequested}* in our menu today.\n\nType *menu* to see all available items.` });
-                return;
-            }
-
-            orderStates[sender] = { step: 'WAITING_FOR_ADDRESS', item: matchedItem };
-            
-            // 🌟 NEW: SEND PRODUCT IMAGE + ASK FOR PHONE NUMBER 🌟
-            const captionText = `🛒 *Order Started!* \n\nYou selected: *${matchedItem.name}* (₹${matchedItem.price})\n\nPlease reply with your *Full Name, Phone Number, and Delivery Address*.`;
-            
-            // If the product has an image URL in Firebase, send it as a WhatsApp Photo
-            if (matchedItem.imageUrl) {
+        // ==========================================
+        // 🛑 STEP 2: CONFIRM INTEREST
+        // ==========================================
+        if (userStates[sender]?.step === 'WAITING_FOR_INTEREST') {
+            if (text === 'yes' || text === 'y' || text.includes('yes')) {
+                userStates[sender].step = 'WAITING_FOR_LEAD_DETAILS';
                 await sock.sendMessage(sender, { 
-                    image: { url: matchedItem.imageUrl }, 
-                    caption: captionText 
+                    text: `Awesome! 🎉\n\nPlease reply with your *Full Name*, an *Alternate Phone Number* (if any), and a *brief description of your requirement* in a single message.` 
                 });
             } else {
-                // Fallback if no image is found
-                await sock.sendMessage(sender, { text: captionText });
+                delete userStates[sender];
+                await sock.sendMessage(sender, { 
+                    text: `No worries! Let us know if you change your mind.\n\nType *services* anytime to explore our other offerings. 🚀` 
+                });
             }
+            return;
         }
-        else if (text === "order") { 
-            await sock.sendMessage(sender, { text: "🛒 *How to order:* \nPlease type 'order' followed by the dish name. \nExample: *order pizza*" });
+
+        // ==========================================
+        // 🛑 STEP 1: MAIN MENU & SERVICE SELECTION
+        // ==========================================
+
+        // --- SHOW SERVICES ---
+        if (text === "services" || text === "menu" || text === "service") {
+            const serviceMenu = `🚀 *Welcome to W-Assistant Services!* 🚀\n\nWe offer premium digital solutions to scale your business. Please choose a category:\n\n1️⃣ 🌐 *Website Development*\n2️⃣ 🎨 *Graphics Designing*\n3️⃣ 📢 *Advertisement / Marketing*\n\n_Reply with the service name (e.g., 'website', 'graphics', or 'ads') to explore our demos and packages!_`;
+            await sock.sendMessage(sender, { text: serviceMenu });
+            return;
         }
-        
-        // --- DYNAMIC MENU FEATURE ---
-        else if (text.includes("menu") || text.includes("price") || text.includes("list") || text.includes("food")) {
-            const currentMenu = await getMenuFromApp();
-            
-            if (currentMenu.length === 0) {
-                await sock.sendMessage(sender, { text: "Our menu is currently empty or updating. Please check back soon!" });
+
+        // --- SHOW DEMOS: WEBSITE DEVELOPMENT ---
+        else if (text.includes("website") || text.includes("web development") || text === "1") {
+            await sock.sendMessage(sender, { text: "⏳ Fetching our best Website Development portfolios..." });
+            const websites = await getServiceData('websites');
+
+            if (websites.length === 0) {
+                await sock.sendMessage(sender, { text: "📂 We are currently updating our website portfolio. Please check back later!" });
                 return;
             }
 
-            let menuMessage = "🍔 *JAVAGOAT LIVE MENU* 🍕\n\n";
-            currentMenu.forEach(item => {
-                menuMessage += `🔸 *${item.name}* - ₹${item.price}\n`;
-            });
-            menuMessage += "\n_To order, reply with 'order [dish name]'_";
-            
-            await sock.sendMessage(sender, { text: menuMessage });
+            for (const item of websites) {
+                let caption = `🌐 *${item.name}*\n\n`;
+                if (item.price) caption += `💰 *Price:* ${item.price}\n`;
+                if (item.demoUrl) caption += `🔗 *Demo:* ${item.demoUrl}\n`;
+                if (item.description) caption += `\n📝 ${item.description}`;
+
+                if (item.imageUrl) {
+                    await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption });
+                } else {
+                    await sock.sendMessage(sender, { text: caption });
+                }
+                await delay(600); // Prevent WhatsApp rate-limiting
+            }
+
+            userStates[sender] = { step: 'WAITING_FOR_INTEREST', category: 'Website Development' };
+            await delay(1000);
+            await sock.sendMessage(sender, { text: `❓ *Are you interested in our Website Development services?*\n\nReply *YES* to continue and connect with our team.` });
+            return;
         }
 
-        // --- GREETINGS ---
-        else if (text.includes("hi") || text.includes("hello") || text.includes("hey")) {
-            await sock.sendMessage(sender, { text: "👋 *Welcome to JavaGoat!* \n\nI am your AI Assistant. Type *menu* to see our delicious food, or type *order [dish]* to buy instantly!" });
+        // --- SHOW DEMOS: GRAPHICS DESIGNING ---
+        else if (text.includes("graphic") || text.includes("design") || text === "2") {
+            await sock.sendMessage(sender, { text: "⏳ Fetching our creative Graphics & Design samples..." });
+            const graphics = await getServiceData('graphics');
+
+            if (graphics.length === 0) {
+                await sock.sendMessage(sender, { text: "📂 We are currently updating our design portfolio. Please check back later!" });
+                return;
+            }
+
+            for (const item of graphics) {
+                let caption = `🎨 *${item.name}*\n\n`;
+                if (item.category) caption += `📂 *Category:* ${item.category}\n`;
+                if (item.price) caption += `💰 *Price Range:* ${item.price}\n`;
+                if (item.description) caption += `\n📝 ${item.description}`;
+
+                if (item.imageUrl) {
+                    await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption });
+                } else {
+                    await sock.sendMessage(sender, { text: caption });
+                }
+                await delay(600);
+            }
+
+            userStates[sender] = { step: 'WAITING_FOR_INTEREST', category: 'Graphics Designing' };
+            await delay(1000);
+            await sock.sendMessage(sender, { text: `❓ *Are you interested in our Graphics Designing services?*\n\nReply *YES* to continue and connect with our team.` });
+            return;
         }
-        else if (text.includes("contact") || text.includes("call")) {
-            await sock.sendMessage(sender, { text: "📞 *Contact JavaGoat:* \n\n- *Email:* support@javagoat.com" });
+
+        // --- SHOW DEMOS: ADVERTISEMENT / MARKETING ---
+        else if (text.includes("ad") || text.includes("marketing") || text.includes("seo") || text === "3") {
+            await sock.sendMessage(sender, { text: "⏳ Fetching our Marketing & Advertisement packages..." });
+            const ads = await getServiceData('ads');
+
+            if (ads.length === 0) {
+                await sock.sendMessage(sender, { text: "📂 We are currently updating our marketing packages. Please check back later!" });
+                return;
+            }
+
+            for (const item of ads) {
+                let caption = `📢 *${item.name}*\n\n`;
+                if (item.price) caption += `💰 *Package Price:* ${item.price}\n`;
+                if (item.description) caption += `\n📝 ${item.description}`;
+
+                if (item.imageUrl) {
+                    await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption });
+                } else {
+                    await sock.sendMessage(sender, { text: caption });
+                }
+                await delay(600);
+            }
+
+            userStates[sender] = { step: 'WAITING_FOR_INTEREST', category: 'Advertisement / Marketing' };
+            await delay(1000);
+            await sock.sendMessage(sender, { text: `❓ *Are you interested in our Marketing & Ads services?*\n\nReply *YES* to continue and connect with our team.` });
+            return;
+        }
+
+        // --- GREETINGS & DEFAULT HANDLER ---
+        else if (text.includes("hi") || text.includes("hello") || text.includes("hey") || text === "start") {
+            const welcomeMsg = `Welcome to *W-Assistant*! 👋\nYour 24/7 Digital Agency Partner.\n\nWe provide professional digital solutions to help you grow your business.\n\nType *services* to see our offerings!`;
+            await sock.sendMessage(sender, { text: welcomeMsg });
         }
         else {
-            await sock.sendMessage(sender, { text: "🤔 I didn't quite catch that.\n\nType *menu* to see our food list, or *order [food]* to place an order!" });
+            // Unrecognized input fallback
+            await sock.sendMessage(sender, { 
+                text: `🤔 I didn't quite catch that.\n\nType *services* to explore our Digital Services, or reply to an active prompt if you were exploring a demo!` 
+            });
         }
     });
 }
 
-startBot().catch(err => console.log("Error: " + err));
+startBot().catch(err => console.log("Critical Error: " + err));
