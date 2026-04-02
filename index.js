@@ -1,5 +1,4 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
 const pino = require('pino');
 
 // 🌟 SECURE FIREBASE URL FROM GITHUB SECRETS 🌟
@@ -44,7 +43,7 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false, // We will print it manually below
+        printQRInTerminal: false, // Turned off completely
         logger: pino({ level: 'silent' }),
         browser: ["W-Assistant", "Chrome", "1.0"] 
     });
@@ -53,13 +52,13 @@ async function startBot() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            // FIX: Removed console.clear() and added empty lines so GitHub Actions doesn't break the QR Code
-            console.log('\n\n\n'); 
-            console.log('==================================================');
-            console.log('📱 SCAN THE QR CODE BELOW TO LINK W-ASSISTANT 📱');
-            console.log('==================================================');
-            qrcode.generate(qr, { small: true }); 
-            console.log('\n\n\n');
+            // 🚀 NEW FIX: Generate a clickable link for the QR Code instead of broken Terminal text
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+            console.log('\n\n=============================================================');
+            console.log('🔗 CLICK THE LINK BELOW TO VIEW & SCAN THE QR CODE 🔗');
+            console.log('👉 ' + qrImageUrl);
+            console.log('⚠️ Note: Click fast! The QR code refreshes every 20 seconds.');
+            console.log('=============================================================\n\n');
         }
 
         if (connection === 'open') {
@@ -250,4 +249,4 @@ async function startBot() {
     });
 }
 
-startBot().catch(err => console.log("Critical Error: " + err));     
+startBot().catch(err => console.log("Critical Error: " + err));
