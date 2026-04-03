@@ -30,9 +30,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // ==========================================
 const langText = {
     en: {
-        welcomeMenu: `🤖 *Hello! I am Wajid Ali's Virtual Assistant.*\n\nHow can I help you today? *Please reply by typing a number from below (Example: Send 1 for Services):*\n\n1️⃣ View Our Digital Services 🚀\n2️⃣ Talk to Wajid Ali 👨‍💻\n3️⃣ زبان تبدیل کریں (Change to Urdu) 🇵🇰`,
+        welcomeMenu: `🤖 *Hello! I am Wajid Ali's Virtual Assistant.*\n\nHow can I help you today? *Please reply by typing a number from below:*\n\n1️⃣ View Our Digital Services 🚀\n2️⃣ Talk to Wajid Ali 👨‍💻\n3️⃣ زبان تبدیل کریں (Change to Urdu) 🇵🇰`,
         
-        servicesMenu: `🚀 *Our Premium Services*\n\n*Please type the number of the service you want to explore (Example: Send 1 for Website):*\n\n1️⃣ Website Development 🌐\n2️⃣ App & Game Development 📱\n3️⃣ Graphics Designing 🎨\n4️⃣ Advertisement & Digital Marketing 📢\n5️⃣ WhatsApp Bot Development 🤖\n\n_👉 Reply with 0 anytime to go back._`,
+        servicesMenu: `🚀 *Our Premium Services*\n\n*Please type the number of the service you want to explore:*\n\n1️⃣ Website Development 🌐\n2️⃣ App & Game Development 📱\n3️⃣ Graphics Designing 🎨\n4️⃣ Advertisement & Digital Marketing 📢\n5️⃣ WhatsApp Bot Development 🤖\n\n_👉 Reply with 0 anytime to go back._`,
         
         demos: {
             web: `🌐 *Website Development*\n\nHere are some of our successful E-Commerce projects:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*Would you like to place an order?*\n👉 Reply *YES* to confirm\n👉 Reply *0* to go back to Menu.`,
@@ -48,12 +48,12 @@ const langText = {
         
         humanMute: `📞 *Request Forwarded!*\n\nI have notified Wajid Ali. He will review your message and reply to you shortly. Please wait for his response. Thank you! 🌟`,
         
-        invalidInput: `🤔 *I didn't understand that.*\n\nPlease interact using the numbers provided in the menu.\n👉 *Example: Type 1 and send to view Services.*\n\nReply with *0* anytime to see the Main Menu again.`
+        invalidInput: `🤔 *I didn't understand that.*\n\nPlease reply with one of the following numbers:\n\n👉 Type *1* to view our Services.\n👉 Type *2* to talk to Wajid Ali.\n👉 Type *3* to change language.\n\nReply with *0* anytime to see the Main Menu again.`
     },
     ur: {
-        welcomeMenu: `🤖 *ہیلو! میں واجد علی کا ورچوئل اسسٹنٹ ہوں۔*\n\nمیں آپ کی کیا مدد کر سکتا ہوں؟ *براہ کرم مینو میں دیا گیا نمبر ٹائپ کر کے ریپلائی کریں (مثال: سروسز کے لیے 1 لکھ کر سینڈ کریں):*\n\n1️⃣ ہماری ڈیجیٹل سروسز دیکھیں 🚀\n2️⃣ واجد علی سے بات کریں 👨‍💻\n3️⃣ Change to English (زبان تبدیل کریں) 🇬🇧`,
+        welcomeMenu: `🤖 *ہیلو! میں واجد علی کا ورچوئل اسسٹنٹ ہوں۔*\n\nمیں آپ کی کیا مدد کر سکتا ہوں؟ *براہ کرم مینو میں دیا گیا نمبر ٹائپ کر کے سینڈ کریں:*\n\n1️⃣ ہماری ڈیجیٹل سروسز دیکھیں 🚀\n2️⃣ واجد علی سے بات کریں 👨‍💻\n3️⃣ Change to English (زبان تبدیل کریں) 🇬🇧`,
         
-        servicesMenu: `🚀 *ہماری پروفیشنل سروسز*\n\n*تفصیلات دیکھنے کے لیے متعلقہ نمبر ٹائپ کر کے سینڈ کریں (مثال: ویب سائٹ کے لیے 1 بھیجیں):*\n\n1️⃣ ویب سائٹ ڈیویلپمنٹ 🌐\n2️⃣ ایپ اور گیم ڈیویلپمنٹ 📱\n3️⃣ گرافکس ڈیزائننگ 🎨\n4️⃣ ایڈورٹائزمنٹ / ڈیجیٹل مارکیٹنگ 📢\n5️⃣ واٹس ایپ بوٹ ڈیویلپمنٹ 🤖\n\n_👉 پیچھے جانے کے لیے کسی بھی وقت 0 بھیجیں۔_`,
+        servicesMenu: `🚀 *ہماری پروفیشنل سروسز*\n\n*تفصیلات دیکھنے کے لیے متعلقہ نمبر ٹائپ کر کے سینڈ کریں:*\n\n1️⃣ ویب سائٹ ڈیویلپمنٹ 🌐\n2️⃣ ایپ اور گیم ڈیویلپمنٹ 📱\n3️⃣ گرافکس ڈیزائننگ 🎨\n4️⃣ ایڈورٹائزمنٹ / ڈیجیٹل مارکیٹنگ 📢\n5️⃣ واٹس ایپ بوٹ ڈیویلپمنٹ 🤖\n\n_👉 پیچھے جانے کے لیے کسی بھی وقت 0 بھیجیں۔_`,
         
         demos: {
             web: `🌐 *ویب سائٹ ڈیویلپمنٹ*\n\nیہ ہمارے کچھ کامیاب ای کامرس پراجیکٹس ہیں:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n*کیا آپ اپنا آرڈر کنفرم کرنا چاہتے ہیں؟*\n👉 آرڈر کے لیے *YES* لکھ کر بھیجیں۔\n👉 پیچھے جانے کے لیے *0* بھیجیں۔`,
@@ -69,7 +69,7 @@ const langText = {
         
         humanMute: `📞 *درخواست موصول ہو گئی!*\n\nمیں نے واجد علی کو اطلاع دے دی ہے۔ وہ جلد ہی آپ کا میسج چیک کر کے آپ سے رابطہ کریں گے۔ براہ کرم ان کے جواب کا انتظار کریں۔ شکریہ! 🌟`,
         
-        invalidInput: `🤔 *مجھے آپ کی بات سمجھ نہیں آئی۔*\n\nبراہ کرم دیے گئے آپشنز میں سے صرف نمبر ٹائپ کر کے ریپلائی کریں۔\n👉 *مثال کے طور پر: سروسز دیکھنے کے لیے 1 لکھ کر سینڈ کریں۔*\n\nمین مینو میں واپس جانے کے لیے کسی بھی وقت *0* بھیجیں۔`
+        invalidInput: `🤔 *مجھے آپ کی بات سمجھ نہیں آئی۔*\n\nبراہ کرم نیچے دیے گئے آپشنز میں سے کوئی ایک نمبر ٹائپ کر کے سینڈ کریں:\n\n👉 سروسز دیکھنے کے لیے *1* لکھیں۔\n👉 واجد علی سے بات کرنے کے لیے *2* لکھیں۔\n👉 زبان تبدیل کرنے کے لیے *3* لکھیں۔\n\nمین مینو میں واپس جانے کے لیے کسی بھی وقت *0* بھیجیں۔`
     }
 };
 
@@ -119,14 +119,25 @@ async function startBot() {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
         const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        // Initialize default user state
-        if (!userStates[sender]) {
-            userStates[sender] = { step: 'WELCOME_MENU', lang: 'en', isMuted: false };
-            await sock.sendMessage(sender, { text: langText['en'].welcomeMenu });
+        // 🟢 GLOBAL GREETING INTERCEPTOR (FIX FOR HI/HELLO ISSUE)
+        const greetings = ['hi', 'hello', 'hey', 'salam', 'assalam', 'assalamualaikum', '0', 'menu', 'start'];
+        
+        if (greetings.some(word => text === word || text.includes(word))) {
+            // Reset everything and show welcome menu
+            const currentLang = userStates[sender]?.lang || 'ur'; // Default to Urdu
+            userStates[sender] = { step: 'WELCOME_MENU', lang: currentLang, isMuted: false };
+            await sock.sendMessage(sender, { text: langText[currentLang].welcomeMenu });
             return;
         }
 
-        // Muted logic - Wait for Wajid Ali to reply
+        // Initialize state if they send something random first
+        if (!userStates[sender]) {
+            userStates[sender] = { step: 'WELCOME_MENU', lang: 'ur', isMuted: false };
+            await sock.sendMessage(sender, { text: langText['ur'].welcomeMenu });
+            return;
+        }
+
+        // Muted logic
         if (userStates[sender].isMuted) {
             if (text === "bot wake up") {
                 userStates[sender].isMuted = false;
@@ -139,12 +150,6 @@ async function startBot() {
         const userState = userStates[sender];
         const lang = userState.lang;
         const t = langText[lang];
-
-        if (text === '0' || text === 'menu') {
-            userState.step = 'WELCOME_MENU';
-            await sock.sendMessage(sender, { text: t.welcomeMenu });
-            return;
-        }
 
         // 🛑 STEP 1: WELCOME MENU HANDLING
         if (userState.step === 'WELCOME_MENU') {
@@ -161,7 +166,6 @@ async function startBot() {
                 await sock.sendMessage(sender, { text: langText[userState.lang].welcomeMenu });
             } 
             else {
-                // اگر یوزر غلطی کرے
                 await sock.sendMessage(sender, { text: t.invalidInput });
             }
             return;
@@ -181,16 +185,7 @@ async function startBot() {
                 userState.step = 'WAITING_FOR_ORDER_CONFIRM';
                 userState.category = categories[text].name;
                 await sock.sendMessage(sender, { text: categories[text].demo });
-                
-                const fbData = await getServiceData('websites'); 
-                for (const item of fbData) {
-                    if (item.imageUrl) {
-                        await delay(600);
-                        await sock.sendMessage(sender, { image: { url: item.imageUrl }, caption: `${item.name}` });
-                    }
-                }
             } else {
-                // اگر یوزر سروس کی جگہ کچھ اور ٹائپ کر دے
                 await sock.sendMessage(sender, { text: t.invalidInput });
             }
             return;
@@ -202,7 +197,6 @@ async function startBot() {
                 userState.step = 'WAITING_FOR_DETAILS';
                 await sock.sendMessage(sender, { text: t.askDetails });
             } else {
-                // اگر وہ YES کی جگہ کچھ اور ٹائپ کرے
                 await sock.sendMessage(sender, { text: `🤔 *Please reply with YES to confirm your order.*\n\nOr reply with *0* to go back to the Main Menu.` });
             }
             return;
