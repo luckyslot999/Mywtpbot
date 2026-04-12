@@ -14,11 +14,15 @@
     "digital-agency",
     "w-assistant"
   ],
-  "author": "Your Agency Name",
+  "author": "Wajid Ali",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.1.1",
     "@whiskeysockets/baileys": "^6.7.0",
-    "qrcode-terminal": "^0.12.0",
-    "pino": "^8.19.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "google-tts-api": "^2.0.2",
+    "pino": "^8.19.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
