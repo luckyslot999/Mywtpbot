@@ -70,65 +70,60 @@ function debouncedUpload() {
 }
 
 // ==========================================
-// 🌐 DICTIONARY (English & Urdu Texts)
+// 🌐 ENHANCED DICTIONARY (Premium Copywriting)
 // ==========================================
 const langText = {
     en: {
-        welcomeMenu: `🌟 *Welcome to Wajid Ali's Digital Agency!* 🌟\n\nI am Wajid's Bot Assistant.\n👇 *Please type a number from below:*\n\n*1️⃣* View Our Premium Services 🚀\n*2️⃣* View Portfolios & Demos 🌐\n*3️⃣* Talk to Wajid Ali (Human) 👨‍💻\n*4️⃣* زبان تبدیل کریں (Urdu) 🇵🇰`,
-        servicesMenu: `🚀 *Our Digital Services*\n👇 *Type the number of the service:*\n\n*1️⃣* Website Development 🌐\n*2️⃣* App Development 📱\n*3️⃣* Graphics Designing 🎨\n*4️⃣* Facebook/Google Ads 📢\n*5️⃣* WhatsApp Bot 🤖\n\n_👉 Type 0 to go back._`,
-        allDemos: `✨ *Live Demos*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 Type 0 for Menu._`,
+        welcomeMenu: `🌟 *Welcome to Wajid Ali Digital Agency!* 🌟\n\nI am Wajid's Smart Assistant. Taking your business to the next level in the digital world is our priority! 🚀\n\n👇 *Please type and send a number from the options below:*\n\n*1️⃣* Explore Our Premium Services 💼\n*2️⃣* View Live Portfolios & Demos 🌐\n*3️⃣* Talk Directly to Wajid Ali 👨‍💻\n\n*4️⃣* اردو زبان کے لیے (For Urdu) 🇵🇰`,
+        
+        servicesMenu: `🚀 *Our Premium Digital Services* 🚀\n\nWe turn your ideas into reality. Here is what we offer:\n👇 *Type and send the number of the service you are interested in:*\n\n*1️⃣* Professional Website Development 🌐\n*2️⃣* Mobile App Development 📱\n*3️⃣* Graphics Designing (Logos, Posts) 🎨\n*4️⃣* Digital Marketing (FB/Google Ads) 📢\n*5️⃣* WhatsApp Automation Bots 🤖\n\n_👉 Type *0* to go back to the Main Menu._`,
+        
+        allDemos: `✨ *Our Live Portfolios & Demos* ✨\n\nWe believe in showing, not just telling. Check out our recent successful projects:\n\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 Type *0* to go back to the Main Menu._`,
+        
         demos: {
-            web: `🌐 *Website Development*\nLive Demos:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`,
-            app: `📱 *App Development*\nHigh-performance apps.\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`,
-            graphics: `🎨 *Graphics Designing*\nLogos, UI/UX, Posts.\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`,
-            ads: `📢 *Ads & Marketing*\nBoost your sales.\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`,
-            bot: `🤖 *WhatsApp Bots*\nAutomate your business.\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`
+            web: `🌐 *Website Development*\n\nOur websites are fast, secure, and visually stunning.\n👇 *Check out our live client work:*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n✨ *Do you want a website like this?*\n✅ Type and send *YES* to place your order now.\n🔙 Type *0* to go back.`,
+            
+            app: `📱 *Mobile App Development*\n\nWe build high-performance, user-friendly mobile apps that your customers will love.\n\n✨ *Ready to build your app?*\n✅ Type and send *YES* to place your order now.\n🔙 Type *0* to go back.`,
+            
+            graphics: `🎨 *Graphics Designing*\n\nFrom professional logos to engaging social media posts, we design it all beautifully.\n\n✨ *Need creative designs?*\n✅ Type and send *YES* to place your order now.\n🔙 Type *0* to go back.`,
+            
+            ads: `📢 *Digital Marketing & Ads*\n\nBoost your sales and reach millions of customers with our targeted Facebook & Google Ads campaigns.\n\n✨ *Want to multiply your sales?*\n✅ Type and send *YES* to place your order now.\n🔙 Type *0* to go back.`,
+            
+            bot: `🤖 *WhatsApp Automation Bots*\n\nAutomate your customer support and sales 24/7 with our smart AI WhatsApp bots.\n\n✨ *Ready to automate your business?*\n✅ Type and send *YES* to place your order now.\n🔙 Type *0* to go back.`
         },
-        askDetails: `🎉 Let's start! Send in one message:\n👤 *1. Name*\n📞 *2. Phone Number*\n📝 *3. Project Details*`,
-        orderConfirmed: `✅ *Order Confirmed!*\nWajid Ali will contact you shortly. 🌟`,
-        humanMute: `📞 *Request Forwarded!*\nI have sent your messages to Wajid Ali. He will reply to you soon. (Type 'bot wake up' to activate me again)`
+        
+        askDetails: `🎉 *Great Decision!* Your project is important to us.\n\nPlease send the following details in *ONE single message* so we can get started:\n\n👤 *1. Your Name*\n📞 *2. Phone Number*\n📝 *3. Complete Project Details*\n\n_(Once you send this, Wajid Ali will contact you directly)_`,
+        
+        orderConfirmed: `✅ *Order Received Successfully!*\n\nThank you for choosing us. Wajid Ali has received your details and will contact you very shortly. Have a great day! 🌟`,
+        
+        humanMute: `📞 *Connecting to Wajid Ali...*\n\nI have forwarded your request directly to Wajid Ali. Please wait, he will reply to you as soon as he is available. 👨‍💻\n\n_(Type 'bot wake up' anytime to activate me again)_`
     },
     ur: {
-        welcomeMenu: `🌟 *واجد علی کی ڈیجیٹل ایجنسی میں خوش آمدید!* 🌟\n\nمیں واجد کا بوٹ اسسٹنٹ ہوں۔\n👇 *براہ کرم نیچے دیا گیا کوئی نمبر ٹائپ کریں:*\n\n*1️⃣* ہماری پریمیم سروسز دیکھیں 🚀\n*2️⃣* ڈیموز اور پورٹ فولیو دیکھیں 🌐\n*3️⃣* واجد علی سے بات کریں 👨‍💻\n*4️⃣* Change to English 🇬🇧`,
-        servicesMenu: `🚀 *ہماری پریمیم سروسز*\n👇 *نمبر ٹائپ کر کے سینڈ کریں:*\n\n*1️⃣* ویب سائٹ ڈیویلپمنٹ 🌐\n*2️⃣* ایپ ڈیویلپمنٹ 📱\n*3️⃣* گرافکس ڈیزائننگ 🎨\n*4️⃣* فیس بک / گوگل ایڈز 📢\n*5️⃣* واٹس ایپ بوٹ 🤖\n\n_👉 پیچھے جانے کے لیے 0 ٹائپ کریں۔_`,
-        allDemos: `✨ *ہمارے لائیو ڈیموز*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 مین مینو کے لیے 0 ٹائپ کریں۔_`,
+        welcomeMenu: `🌟 *واجد علی ڈیجیٹل ایجنسی میں خوش آمدید!* 🌟\n\nمیں واجد کا سمارٹ اسسٹنٹ ہوں۔ آپ کے بزنس کو ڈیجیٹل دنیا میں کامیاب بنانا ہماری ذمہ داری ہے! 🚀\n\n👇 *براہ کرم اپنی ضرورت کے مطابق نیچے دیا گیا کوئی ایک نمبر ٹائپ کر کے سینڈ کریں:*\n\n*1️⃣* ہماری پریمیم ڈیجیٹل سروسز دیکھیں 💼\n*2️⃣* ہمارے کام کے لائیو ڈیموز دیکھیں 🌐\n*3️⃣* واجد علی سے براہ راست بات کریں 👨‍💻\n\n*4️⃣* انگریزی زبان کے لیے (For English) 🇬🇧`,
+        
+        servicesMenu: `🚀 *ہماری پریمیم ڈیجیٹل سروسز* 🚀\n\nہم آپ کے آئیڈیاز کو حقیقت میں بدلتے ہیں۔ ہم کیا آفر کرتے ہیں؟\n👇 *تفصیلات جاننے کے لیے اپنی پسندیدہ سروس کا نمبر لکھ کر سینڈ کریں:*\n\n*1️⃣* پروفیشنل ویب سائٹ ڈیویلپمنٹ 🌐\n*2️⃣* موبائل ایپ ڈیویلپمنٹ 📱\n*3️⃣* گرافکس ڈیزائننگ (لوگو، پوسٹس) 🎨\n*4️⃣* ڈیجیٹل مارکیٹنگ (فیس بک/گوگل ایڈز) 📢\n*5️⃣* واٹس ایپ آٹو ریپلائی بوٹ 🤖\n\n_👉 مین مینیو میں واپس جانے کے لیے *0* ٹائپ کریں۔_`,
+        
+        allDemos: `✨ *ہمارے لائیو ڈیموز اور پورٹ فولیو* ✨\n\nہم صرف باتیں نہیں کرتے، کام کر کے دکھاتے ہیں۔ ہمارے حالیہ کامیاب پروجیکٹس یہاں چیک کریں:\n\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 مین مینو میں واپس جانے کے لیے *0* ٹائپ کریں۔_`,
+        
         demos: {
-            web: `🌐 *ویب سائٹ ڈیویلپمنٹ*\nڈیموز:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
-            app: `📱 *ایپ ڈیویلپمنٹ*\nبہترین موبائل ایپس۔\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
-            graphics: `🎨 *گرافکس ڈیزائننگ*\nپروفیشنل لوگوز اور ڈیزائن۔\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
-            ads: `📢 *مارکیٹنگ اور ایڈز*\nاپنی سیلز بڑھائیں۔\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
-            bot: `🤖 *واٹس ایپ بوٹ*\nبزنس آٹومیٹ کریں۔\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`
+            web: `🌐 *ویب سائٹ ڈیویلپمنٹ*\n\nہماری بنائی گئی ویب سائٹس تیز، محفوظ اور خوبصورت ہوتی ہیں۔\n👇 *ہمارے کلائنٹس کا لائیو کام چیک کریں:*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n✨ *کیا آپ بھی ایسی پروفیشنل ویب سائٹ بنوانا چاہتے ہیں؟*\n✅ آرڈر بک کرنے کے لیے ابھی *YES* لکھ کر سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
+            
+            app: `📱 *موبائل ایپ ڈیویلپمنٹ*\n\nہم ایسی شاندار اور تیز ترین موبائل ایپس بناتے ہیں جو آپ کے کسٹمرز کو پسند آئیں گی۔\n\n✨ *کیا آپ اپنی ایپ بنوانا چاہتے ہیں؟*\n✅ آرڈر بک کرنے کے لیے ابھی *YES* لکھ کر سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
+            
+            graphics: `🎨 *گرافکس ڈیزائننگ*\n\nپروفیشنل بزنس لوگو سے لے کر سوشل میڈیا پوسٹس تک، ہم ہر ڈیزائن کو دلکش بناتے ہیں۔\n\n✨ *کیا آپ کو بہترین ڈیزائنز چاہیے؟*\n✅ آرڈر بک کرنے کے لیے ابھی *YES* لکھ کر سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
+            
+            ads: `📢 *ڈیجیٹل مارکیٹنگ اور ایڈز*\n\nفیس بک اور گوگل ایڈز کے ذریعے اپنی سیلز کو کئی گنا بڑھائیں اور لاکھوں کسٹمرز تک پہنچیں۔\n\n✨ *کیا آپ اپنی سیلز بڑھانا چاہتے ہیں؟*\n✅ آرڈر بک کرنے کے لیے ابھی *YES* لکھ کر سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
+            
+            bot: `🤖 *واٹس ایپ آٹو ریپلائی بوٹ*\n\nہمارے سمارٹ AI بوٹس کے ذریعے اپنے کسٹمر سپورٹ اور سیلز کو 24 گھنٹے آٹومیٹ کریں۔\n\n✨ *کیا آپ اپنا واٹس ایپ بوٹ بنوانا چاہتے ہیں؟*\n✅ آرڈر بک کرنے کے لیے ابھی *YES* لکھ کر سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`
         },
-        askDetails: `🎉 ایک ہی میسج میں تفصیلات بھیجیں:\n👤 *1. آپ کا نام*\n📞 *2. فون نمبر*\n📝 *3. پروجیکٹ کی تفصیل*`,
-        orderConfirmed: `✅ *آرڈر کنفرم!* واجد علی جلد رابطہ کریں گے۔ 🌟`,
-        humanMute: `📞 *میسج بھیج دیا گیا!*\nمیں نے آپ کا میسج واجد علی کو بھیج دیا ہے۔ وہ جلد آپ سے رابطہ کریں گے۔ (بوٹ آن کرنے کے لیے 'bot wake up' لکھیں)`
+        
+        askDetails: `🎉 *زبردست فیصلہ!* آپ کا پروجیکٹ ہمارے لیے بہت اہم ہے۔\n\nبراہ کرم ایک ہی میسج میں اپنی یہ تفصیلات لکھ کر بھیجیں تاکہ ہم کام شروع کر سکیں:\n\n👤 *1. آپ کا نام*\n📞 *2. آپ کا فون نمبر*\n📝 *3. پروجیکٹ کی مکمل تفصیل*\n\n_(جیسے ہی آپ تفصیلات بھیجیں گے، واجد علی خود آپ سے رابطہ کریں گے)_`,
+        
+        orderConfirmed: `✅ *آپ کا آرڈر موصول ہو گیا ہے!*\n\nہم پر اعتماد کرنے کا شکریہ۔ واجد علی کو آپ کی تفصیلات مل گئی ہیں اور وہ بہت جلد آپ سے رابطہ کریں گے۔ آپ کا دن خوشگوار گزرے! 🌟`,
+        
+        humanMute: `📞 *واجد علی سے رابطہ کیا جا رہا ہے...*\n\nمیں نے آپ کا میسج براہ راست واجد علی کو فارورڈ کر دیا ہے۔ براہ کرم انتظار کریں، وہ جیسے ہی فری ہوں گے آپ کو ریپلائی کریں گے۔ 👨‍💻\n\n_(بوٹ کو دوبارہ آن کرنے کے لیے کسی بھی وقت 'bot wake up' لکھیں)_`
     }
 };
-
-// ==========================================
-// 🎤 SEND LOCAL VOICE NOTE FUNCTION (FIXED FOR PLAYBACK)
-// ==========================================
-async function sendLocalVoiceNote(sock, sender, lang) {
-    // ✅ CHANGED to .ogg for 100% WhatsApp Playback compatibility
-    const fileName = lang === 'ur' ? 'urduvoice.ogg' : 'englishvoice.ogg'; 
-    const filePath = path.join(__dirname, fileName);
-
-    if (fs.existsSync(filePath)) {
-        try {
-            const audioBuffer = fs.readFileSync(filePath);
-            await sock.sendMessage(sender, { 
-                audio: audioBuffer, 
-                // ✅ This exact mimetype is REQUIRED by WhatsApp to play Voice Notes
-                mimetype: 'audio/ogg; codecs=opus', 
-                ptt: true 
-            });
-        } catch (err) {
-            console.error("Error sending voice note:", err);
-        }
-    } else {
-        console.log(`⚠️ آڈیو فائل نہیں ملی: ${fileName} - براہ کرم اسے روٹ فولڈر میں رکھیں۔`);
-    }
-}
 
 // ==========================================
 // 🚀 BOT START
@@ -161,7 +156,7 @@ async function startBot() {
         }
         
         if (connection === 'open') {
-            console.log('✅ WAJID ALI AI IS ONLINE! (LOCAL AUDIO MODE)');
+            console.log('✅ WAJID ALI AI IS ONLINE! (PREMIUM TEXT MODE)');
             debouncedUpload();
         }
         if (connection === 'close') {
@@ -199,7 +194,6 @@ async function startBot() {
             const t = langText[detectedLang];
             
             await sock.sendMessage(sender, { text: t.welcomeMenu });
-            await sendLocalVoiceNote(sock, sender, detectedLang);
             return;
         }
 
@@ -214,7 +208,6 @@ async function startBot() {
                 userState.step = 'WELCOME_MENU';
                 userState.invalidAttempts = 0;
                 await sock.sendMessage(sender, { text: t.welcomeMenu });
-                await sendLocalVoiceNote(sock, sender, lang);
             }
             return; 
         }
@@ -224,7 +217,6 @@ async function startBot() {
             userState.step = 'WELCOME_MENU';
             userState.invalidAttempts = 0;
             await sock.sendMessage(sender, { text: t.welcomeMenu });
-            await sendLocalVoiceNote(sock, sender, lang);
             return;
         }
 
@@ -264,11 +256,11 @@ async function startBot() {
                 userState.isMuted = true;
                 await sock.sendMessage(sender, { text: t.humanMute });
             } else if (text === '4') { 
+                // Context-Aware Language Change
                 userState.invalidAttempts = 0;
                 userState.lang = lang === 'en' ? 'ur' : 'en'; 
                 const newLang = userState.lang;
                 await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
-                await sendLocalVoiceNote(sock, sender, newLang);
             } else {
                 userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
                 if (userState.invalidAttempts >= 3) {
@@ -276,7 +268,6 @@ async function startBot() {
                     await sock.sendMessage(sender, { text: t.humanMute });
                 } else {
                     await sock.sendMessage(sender, { text: t.welcomeMenu });
-                    await sendLocalVoiceNote(sock, sender, lang);
                 }
             }
             return;
@@ -313,6 +304,12 @@ async function startBot() {
         }
 
         if (userState.step === 'WAITING_FOR_DETAILS') {
+            const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
+            if (FIREBASE_URL) {
+                try {
+                    await fetch(`${FIREBASE_URL}/leads.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) });
+                } catch (error) {}
+            }
             userState.step = 'WELCOME_MENU'; 
             await sock.sendMessage(sender, { text: t.orderConfirmed });
             return;
