@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const NodeCache = require('node-cache'); // ✅ کنکشن فکس کے لیے شامل کیا گیا
 
 // ==========================================
 // 🌐 RENDER 24/7 UPTIME SERVER
@@ -23,9 +22,6 @@ if (FIREBASE_URL.endsWith('/')) FIREBASE_URL = FIREBASE_URL.slice(0, -1);
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-
-// ✅ میسج ری ٹرائی کیشے (QR ایرر فکس کے لیے)
-const msgRetryCounterCache = new NodeCache();
 
 const AI_PROMPT = `You are a highly conversational sales bot assistant for Wajid Ali's Digital Agency.
 We offer: Website Dev, App Dev, Graphics, Ads, and WhatsApp Bots.
@@ -110,7 +106,7 @@ const langText = {
 };
 
 // ==========================================
-// 🚀 BOT START (QR ERROR FIXED)
+// 🚀 BOT START (QR FIX APPLIED)
 // ==========================================
 async function startBot() {
     await downloadSession();
@@ -123,16 +119,15 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        // ✅ Couldn't Link Device Fix (Browser Spoofing)
+        // ✅ YAHAN QR ERROR KA FIX LAGA HAI (Browser Spoofing)
         browser: ['Mac OS', 'Chrome', '121.0.6167.159'], 
-        syncFullHistory: false,
-        msgRetryCounterCache // ✅ کنکشن ڈراپ فکس
+        syncFullHistory: false
     });
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         
-        // ✅ QR CODE LINK GENERATION (اوریجنل کام کر رہا ہے)
+        // ✅ QR CODE LINK GENERATION
         if (qr) {
             const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
             console.log('\n===================================================');
@@ -148,13 +143,12 @@ async function startBot() {
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             
-            // ✅ اگر واٹس ایپ کیو آر ریجیکٹ کرے تو پرانا سیشن ڈیلیٹ ہو جائے
-            const isUnauthorized = reason === DisconnectReason.loggedOut || reason === 401 || reason === 403 || reason === 405;
-            
-            if (isUnauthorized) {
-                console.log("⚠️ سیشن ایرر یا لاگ آؤٹ ہو گیا! پرانا ڈیٹا ڈیلیٹ کر کے نیا کیو آر جنریٹ کیا جا رہا ہے...");
+            // ✅ Agar WhatsApp QR reject kare (ya log out ho) tou session auto-delete ho jaye
+            if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
+                console.log("⚠️ سیشن لاگ آؤٹ ہو گیا یا کیو آر ریجیکٹ ہوا! پرانا ڈیٹا ڈیلیٹ کر کے نیا کیو آر آ رہا ہے...");
                 if (fs.existsSync('session_data')) fs.rmSync('session_data', { recursive: true, force: true });
             }
+            
             startBot();
         }
     });
