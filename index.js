@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const axios = require('axios'); // نیا پیکج ElevenLabs کے لیے
+const axios = require('axios');
 
 // ==========================================
 // 🌐 RENDER 24/7 UPTIME SERVER
@@ -25,7 +25,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
-// Default Voice ID if not provided in .env
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; 
 
 const AI_PROMPT = `You are a highly conversational sales bot assistant for Wajid Ali's Digital Agency.
@@ -124,7 +123,6 @@ async function sendElevenLabsVoiceNote(sock, sender, text, quotedMsg = null) {
     }
 
     try {
-        // Calling ElevenLabs API
         const response = await axios({
             method: 'post',
             url: `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`,
@@ -135,19 +133,18 @@ async function sendElevenLabsVoiceNote(sock, sender, text, quotedMsg = null) {
             },
             data: {
                 text: text,
-                model_id: "eleven_multilingual_v2", // Multilingual Model Supports Urdu & English
+                model_id: "eleven_multilingual_v2", 
                 voice_settings: { stability: 0.5, similarity_boost: 0.75 }
             },
-            responseType: 'arraybuffer' // Getting Audio Data
+            responseType: 'arraybuffer' 
         });
 
         const audioBuffer = Buffer.from(response.data);
 
-        // Sending to WhatsApp as Voice Note (audio/mpeg works best with Baileys buffer)
         await sock.sendMessage(sender, { 
             audio: audioBuffer, 
             mimetype: 'audio/mpeg', 
-            ptt: true // Shows as Voice Note 🎤
+            ptt: true 
         }, quotedMsg ? { quoted: quotedMsg } : undefined);
 
     } catch (e) { 
@@ -167,7 +164,7 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: false, // QR Code Terminal in false because we use Link
         logger: pino({ level: 'silent' }),
         browser: Browsers.macOS('Desktop'), 
         syncFullHistory: false
@@ -175,9 +172,16 @@ async function startBot() {
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
+        
+        // ✅ FIXED QR CODE LINK GENERATION
         if (qr) {
-            console.log('\n🔄 NEW QR CODE GENERATED\n');
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+            console.log('\n===================================================');
+            console.log('🔄 NEW QR CODE GENERATED! CLICK THE LINK BELOW TO SCAN:');
+            console.log('👉 ' + qrImageUrl);
+            console.log('===================================================\n');
         }
+        
         if (connection === 'open') {
             console.log('✅ WAJID ALI AI IS ONLINE WITH ELEVENLABS!');
             debouncedUpload();
@@ -242,7 +246,7 @@ async function startBot() {
             return;
         }
 
-        // 🎤 USER SENDS VOICE MESSAGE (Gemini writes reply, ElevenLabs speaks it)
+        // 🎤 USER SENDS VOICE MESSAGE
         if (msgType === 'audioMessage') {
             await sock.sendPresenceUpdate('recording', sender);
             try {
@@ -256,7 +260,6 @@ async function startBot() {
                 ]);
                 
                 const aiResponse = result.response.text();
-                // Send generated text as ElevenLabs Voice
                 await sendElevenLabsVoiceNote(sock, sender, aiResponse, msg);
             } catch (e) {
                 console.error("Audio Process Error:", e);
