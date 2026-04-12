@@ -1,5 +1,6 @@
 require('dotenv').config();
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
+// Browsers کو امپورٹ کیا گیا ہے تاکہ واٹس ایپ کنکشن بلاک نہ کرے
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -35,10 +36,10 @@ const userStates = {};
 const chatSessions = {};
 
 // ==========================================
-// 🔥 FIREBASE SESSION MANAGEMENT (ORIGINAL)
+// 🔥 FIREBASE SESSION MANAGEMENT
 // ==========================================
 async function downloadSession() {
-    if (!FIREBASE_URL) return console.log('⚠️ FIREBASE_URL is not set!');
+    if (!FIREBASE_URL) return;
     try {
         const response = await fetch(`${FIREBASE_URL}/whatsapp_session.json`);
         const data = await response.json();
@@ -50,9 +51,7 @@ async function downloadSession() {
             }
             console.log('✅ Session restored successfully from Firebase!');
         }
-    } catch (error) {
-        console.log('❌ Error restoring session:', error.message);
-    }
+    } catch (error) {}
 }
 
 async function uploadSession() {
@@ -78,7 +77,7 @@ function debouncedUpload() {
 }
 
 // ==========================================
-// 🌐 DICTIONARY: ENGLISH & URDU MESSAGES (ORIGINAL)
+// 🌐 DICTIONARY: ENGLISH & URDU MESSAGES 
 // ==========================================
 const langText = {
     en: {
@@ -150,29 +149,30 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false, 
+        printQRInTerminal: true, // ✅ اب QR کوڈ ٹرمینل میں پرنٹ ہوگا، سکیننگ آسان ہوگی
         logger: pino({ level: 'silent' }),
-        browser: ["W-Assistant", "Chrome", "1.0"],
-        syncFullHistory: false
+        // ✅ FIXED: براؤزر کا نام سٹینڈرڈ کر دیا گیا ہے تاکہ WhatsApp کنیکٹ ہونے سے نہ روکے
+        browser: Browsers.ubuntu('Chrome'), 
+        syncFullHistory: false,
+        generateHighQualityLinkPreview: true
     });
 
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        const { connection, lastDisconnect } = update;
         
-        if (qr) {
-            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-            console.log('\n🔄 NEW QR CODE GENERATED! 👉 ' + qrImageUrl + '\n');
-        }
         if (connection === 'open') {
-            console.log('✅ W-ASSISTANT IS ONLINE!');
+            console.log('✅ W-ASSISTANT IS ONLINE SUCCESSFULLY!');
             debouncedUpload();
         }
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
+            console.log('❌ Connection Closed. Reason Code:', reason);
             if (reason !== DisconnectReason.loggedOut) {
-                startBot();
+                startBot(); // Auto reconnect
             } else {
+                console.log('⚠️ LOGGED OUT! Deleting session and restarting...');
                 if (fs.existsSync('session_data')) fs.rmSync('session_data', { recursive: true, force: true });
+                startBot(); // Restart for fresh QR
             }
         }
     });
@@ -196,7 +196,6 @@ async function startBot() {
         const lang = userState.lang;
         const t = langText[lang];
 
-        // 🛑 WAKE UP BOT
         if (userState.isMuted) {
             if (text === "bot wake up") {
                 userState.isMuted = false;
@@ -206,7 +205,6 @@ async function startBot() {
             return; 
         }
 
-        // 🔄 RESET TO MENU (Priority)
         const greetings = ['0', 'menu', 'start'];
         if (greetings.includes(text)) {
             userState.step = 'WELCOME_MENU';
@@ -214,7 +212,6 @@ async function startBot() {
             return;
         }
 
-        // 🎤 HANDLE VOICE MESSAGE (AI ONLY)
         if (msgType === 'audioMessage') {
             await sock.sendPresenceUpdate('recording', sender);
             try {
@@ -239,7 +236,6 @@ async function startBot() {
             return;
         }
 
-        // ⌨️ HANDLE TEXT MENUS (ORIGINAL LOGIC)
         if (userState.step === 'WELCOME_MENU') {
             if (text === '1') { 
                 userState.step = 'SERVICES_MENU';
@@ -251,7 +247,6 @@ async function startBot() {
                 userState.lang = lang === 'en' ? 'ur' : 'en'; 
                 await sock.sendMessage(sender, { text: langText[userState.lang].welcomeMenu });
             } else {
-                // If not 1,2,3 -> Let AI Answer
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
                 await sock.sendMessage(sender, { text: aiReply });
@@ -273,7 +268,6 @@ async function startBot() {
                 userState.category = categories[text].name;
                 await sock.sendMessage(sender, { text: categories[text].demo });
             } else {
-                // Not 1-5 -> Let AI Answer
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
                 await sock.sendMessage(sender, { text: aiReply });
@@ -286,7 +280,6 @@ async function startBot() {
                 userState.step = 'WAITING_FOR_DETAILS';
                 await sock.sendMessage(sender, { text: t.askDetails });
             } else {
-                // Let AI Handle Objections
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
                 await sock.sendMessage(sender, { text: aiReply });
