@@ -24,10 +24,10 @@ if (FIREBASE_URL.endsWith('/')) FIREBASE_URL = FIREBASE_URL.slice(0, -1);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// ✅ AI PROMPT UPDATED: AI کو مختصر جواب دینے کا پابند کیا گیا ہے تاکہ Voice کریش نہ ہو
-const AI_PROMPT = `You are Sana, a highly conversational female sales assistant for Wajid Ali's Digital Agency.
+// ✅ AI PROMPT UPDATED: AI Persona changed to Wajid's Bot Assistant
+const AI_PROMPT = `You are a highly conversational sales bot assistant for Wajid Ali's Digital Agency.
 We offer: Website Dev, App Dev, Graphics, Ads, and WhatsApp Bots.
-Rule 1: Answer naturally and politely to the user's text or voice.
+Rule 1: Answer naturally and politely to the user's text or voice. DO NOT mention you are an AI. Say you are Wajid's Bot Assistant.
 Rule 2: Never give prices. Say Wajid Ali will quote the exact price.
 Rule 3: IMPORTANT: Keep your response SHORT (under 180 characters) so it can be easily converted into a Voice Note. Be concise and sweet.
 Rule 4: Reply in the language the user speaks (English or Roman Urdu/Urdu).`;
@@ -72,15 +72,13 @@ function debouncedUpload() {
 }
 
 // ==========================================
-// 🌐 ENHANCED DICTIONARY (Text + Voice Guidance)
+// 🌐 ENHANCED DICTIONARY (Text + Synchronized Voice Guidance)
 // ==========================================
 const langText = {
     en: {
-        welcomeMenu: `🌟 *Welcome to Wajid Ali's Digital Agency!* 🌟\n\nI am Sana, your smart AI Assistant.\n👇 *Please type a number from below:*\n\n*1️⃣* View Our Premium Services 🚀\n*2️⃣* View Portfolios & Demos 🌐\n*3️⃣* Talk to AI Assistant (Voice) 🎙️\n*4️⃣* Talk to Wajid Ali (Human) 👨‍💻\n*5️⃣* زبان تبدیل کریں (Urdu) 🇵🇰`,
-        voiceIntro: "Welcome to Wajid Ali Digital Agency! Please select an option from the menu by typing a number.", // بولنے کے لیے
+        welcomeMenu: `🌟 *Welcome to Wajid Ali's Digital Agency!* 🌟\n\nI am Wajid's Bot Assistant.\n👇 *Please type a number from below:*\n\n*1️⃣* View Our Premium Services 🚀\n*2️⃣* View Portfolios & Demos 🌐\n*3️⃣* Talk to Wajid Ali (Human) 👨‍💻\n*4️⃣* زبان تبدیل کریں (Urdu) 🇵🇰`,
+        voiceIntro: "Welcome to Wajid Ali Digital Agency. I am Wajid's bot assistant. Reply 1 for services, 2 for demos, and 3 to talk to Wajid Ali.", // Shortened to fit TTS limits & exact menu match
         servicesMenu: `🚀 *Our Digital Services*\n👇 *Type the number of the service:*\n\n*1️⃣* Website Development 🌐\n*2️⃣* App Development 📱\n*3️⃣* Graphics Designing 🎨\n*4️⃣* Facebook/Google Ads 📢\n*5️⃣* WhatsApp Bot 🤖\n\n_👉 Type 0 to go back._`,
-        aiInfo: `🎙️ *AI Voice Chat Activated*\n\nI am ready! Please record and send me a *Voice Note*, and I will reply to you in voice. \n\n_👉 Type 0 anytime for Main Menu._`,
-        aiVoiceIntro: "Hello, I am Sana. You can now chat with me. Just send me a voice note and I will reply to you.", // بولنے کے لیے
         allDemos: `✨ *Live Demos*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 Type 0 for Menu._`,
         demos: {
             web: `🌐 *Website Development*\nLive Demos:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n✅ Type *YES* to place order.\n🔙 Type *0* to go back.`,
@@ -91,14 +89,14 @@ const langText = {
         },
         askDetails: `🎉 Let's start! Send in one message:\n👤 *1. Name*\n📞 *2. Phone Number*\n📝 *3. Project Details*`,
         orderConfirmed: `✅ *Order Confirmed!*\nWajid Ali will contact you shortly. 🌟`,
-        humanMute: `📞 *Request Forwarded!*\nWajid Ali will reply soon. (Type 'bot wake up' to activate me again)`
+        humanMute: `📞 *Request Forwarded!*\nI have sent your messages to Wajid Ali. He will reply to you soon. (Type 'bot wake up' to activate me again)`,
+        humanMuteVoice: "I have forwarded your request to Wajid Ali. He will contact you shortly.",
+        invalidInput: "⚠️ Invalid option. Please type a valid number from the menu, or type 0 to see the menu again."
     },
     ur: {
-        welcomeMenu: `🌟 *واجد علی کی ڈیجیٹل ایجنسی میں خوش آمدید!* 🌟\n\nمیں ثناء ہوں، آپ کی AI اسسٹنٹ۔\n👇 *براہ کرم نیچے دیا گیا کوئی نمبر ٹائپ کریں:*\n\n*1️⃣* ہماری پریمیم سروسز دیکھیں 🚀\n*2️⃣* ڈیموز اور پورٹ فولیو دیکھیں 🌐\n*3️⃣* ہماری AI سے وائس میں بات کریں 🎙️\n*4️⃣* واجد علی سے بات کریں 👨‍💻\n*5️⃣* Change to English 🇬🇧`,
-        voiceIntro: "واجد علی کی ڈیجیٹل ایجنسی میں خوش آمدید۔ مینو میں سے اپنا مطلوبہ نمبر ٹائپ کر کے سینڈ کریں۔", // بولنے کے لیے
+        welcomeMenu: `🌟 *واجد علی کی ڈیجیٹل ایجنسی میں خوش آمدید!* 🌟\n\nمیں واجد کا بوٹ اسسٹنٹ ہوں۔\n👇 *براہ کرم نیچے دیا گیا کوئی نمبر ٹائپ کریں:*\n\n*1️⃣* ہماری پریمیم سروسز دیکھیں 🚀\n*2️⃣* ڈیموز اور پورٹ فولیو دیکھیں 🌐\n*3️⃣* واجد علی سے بات کریں 👨‍💻\n*4️⃣* Change to English 🇬🇧`,
+        voiceIntro: "واجد علی ڈیجیٹل ایجنسی میں خوش آمدید۔ میں واجد کا اسسٹنٹ بوٹ ہوں۔ سروسز کے لیے ایک، ڈیموز کے لیے دو، اور واجد علی سے بات کرنے کے لیے تین دبائیں۔", // اردو وائس گائیڈ (چھوٹی رکھی گئی ہے تاکہ کریش نہ ہو)
         servicesMenu: `🚀 *ہماری پریمیم سروسز*\n👇 *نمبر ٹائپ کر کے سینڈ کریں:*\n\n*1️⃣* ویب سائٹ ڈیویلپمنٹ 🌐\n*2️⃣* ایپ ڈیویلپمنٹ 📱\n*3️⃣* گرافکس ڈیزائننگ 🎨\n*4️⃣* فیس بک / گوگل ایڈز 📢\n*5️⃣* واٹس ایپ بوٹ 🤖\n\n_👉 پیچھے جانے کے لیے 0 ٹائپ کریں۔_`,
-        aiInfo: `🎙️ *AI وائس چیٹ ایکٹیو*\n\nمیں تیار ہوں! بس ایک *وائس نوٹ* ریکارڈ کر کے بھیجیں، اور میں آپ کو آواز میں ہی جواب دوں گی۔\n\n_👉 مین مینو کے لیے 0 ٹائپ کریں۔_`,
-        aiVoiceIntro: "ہیلو، میں ثناء ہوں۔ آپ مجھ سے بات کر سکتے ہیں۔ بس ایک وائس نوٹ بھیجیں اور میں آپ کو جواب دوں گی۔", // بولنے کے لیے
         allDemos: `✨ *ہمارے لائیو ڈیموز*\n🔗 https://friendspharma.shop/\n🔗 https://kmartonline.store/\n\n_👉 مین مینو کے لیے 0 ٹائپ کریں۔_`,
         demos: {
             web: `🌐 *ویب سائٹ ڈیویلپمنٹ*\nڈیموز:\n👉 https://friendspharma.shop/\n👉 https://kmartonline.store/\n\n✅ آرڈر کے لیے *YES* سینڈ کریں۔\n🔙 پیچھے جانے کے لیے *0* ٹائپ کریں۔`,
@@ -109,15 +107,17 @@ const langText = {
         },
         askDetails: `🎉 ایک ہی میسج میں تفصیلات بھیجیں:\n👤 *1. آپ کا نام*\n📞 *2. فون نمبر*\n📝 *3. پروجیکٹ کی تفصیل*`,
         orderConfirmed: `✅ *آرڈر کنفرم!* واجد علی جلد رابطہ کریں گے۔ 🌟`,
-        humanMute: `📞 *میسج بھیج دیا گیا!* واجد علی جلد رابطہ کریں گے۔ (بوٹ آن کرنے کے لیے 'bot wake up' لکھیں)`
+        humanMute: `📞 *میسج بھیج دیا گیا!*\nمیں نے آپ کا میسج واجد علی کو بھیج دیا ہے۔ وہ جلد آپ سے رابطہ کریں گے۔ (بوٹ آن کرنے کے لیے 'bot wake up' لکھیں)`,
+        humanMuteVoice: "میں نے آپ کا میسج واجد علی کو بھیج دیا ہے۔ وہ جلد ہی آپ سے رابطہ کریں گے۔",
+        invalidInput: "⚠️ آپ نے غلط آپشن منتخب کیا ہے۔ براہ کرم مینو میں سے درست نمبر ٹائپ کریں، یا دوبارہ مینو دیکھنے کے لیے 0 لکھیں۔"
     }
 };
 
 // ==========================================
-// 🎤 SECURE AI VOICE & TEXT GENERATOR
+// 🎤 SECURE AI VOICE & TEXT GENERATOR (FIXED AUDIO BUG)
 // ==========================================
 async function getAIResponse(sender, textMessage) {
-    if (!GEMINI_API_KEY) return "🤖 AI is offline. Reply 0 for Menu.";
+    if (!GEMINI_API_KEY) return null;
     try {
         if (!chatSessions[sender]) {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
@@ -125,27 +125,27 @@ async function getAIResponse(sender, textMessage) {
         }
         const result = await chatSessions[sender].sendMessage(textMessage);
         return result.response.text();
-    } catch (e) { return "🤖 Sorry, I didn't catch that. Reply 0 for Menu."; }
-}
-
-async function generateVoice(text, lang = 'ur') {
-    try {
-        // ✅ BUG FIXED: Limit to 195 chars to avoid "Glitch" crash
-        let safeText = text.substring(0, 195); 
-        const url = googleTTS.getAudioUrl(safeText, { lang: lang, slow: false, host: 'https://translate.google.com' });
-        const res = await fetch(url);
-        const buffer = await res.arrayBuffer();
-        return Buffer.from(buffer);
-    } catch (e) { 
-        console.error("TTS Error:", e);
-        return null; 
-    }
+    } catch (e) { return null; }
 }
 
 async function sendVoiceNote(sock, sender, text, lang, quotedMsg = null) {
-    const voiceBuffer = await generateVoice(text, lang);
-    if (voiceBuffer) {
-        await sock.sendMessage(sender, { audio: voiceBuffer, mimetype: 'audio/mp4', ptt: true }, quotedMsg ? { quoted: quotedMsg } : undefined);
+    try {
+        // ✅ Limit characters to avoid TTS API limits
+        let safeText = text.substring(0, 195); 
+        
+        // ✅ Using Base64 method to completely avoid "Corrupted Audio File" bug
+        const base64Audio = await googleTTS.getAudioBase64(safeText, { lang: lang, slow: false, host: 'https://translate.google.com' });
+        const audioBuffer = Buffer.from(base64Audio, 'base64');
+
+        // ✅ Using 'audio/mpeg' ensures compatibility and plays perfectly in latest WhatsApp
+        await sock.sendMessage(sender, { 
+            audio: audioBuffer, 
+            mimetype: 'audio/mpeg', 
+            ptt: true // Set to true to show as Voice Note, will play seamlessly now
+        }, quotedMsg ? { quoted: quotedMsg } : undefined);
+
+    } catch (e) { 
+        console.error("TTS Error:", e);
     }
 }
 
@@ -201,7 +201,17 @@ async function startBot() {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
         const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        if (!userStates[sender]) userStates[sender] = { step: 'WELCOME_MENU', lang: 'ur', isMuted: false };
+        // 1️⃣ ANY FIRST MESSAGE HANDLER (Stickers, Images, Hi, Hello)
+        if (!userStates[sender]) {
+            userStates[sender] = { step: 'WELCOME_MENU', lang: 'ur', isMuted: false, invalidAttempts: 0 };
+            const lang = userStates[sender].lang;
+            const t = langText[lang];
+            
+            await sock.sendMessage(sender, { text: t.welcomeMenu });
+            await sendVoiceNote(sock, sender, t.voiceIntro, lang);
+            return;
+        }
+
         const userState = userStates[sender];
         const lang = userState.lang;
         const t = langText[lang];
@@ -210,48 +220,42 @@ async function startBot() {
             if (text === "bot wake up") {
                 userState.isMuted = false;
                 userState.step = 'WELCOME_MENU';
+                userState.invalidAttempts = 0;
                 await sock.sendMessage(sender, { text: t.welcomeMenu });
                 await sendVoiceNote(sock, sender, t.voiceIntro, lang);
             }
             return; 
         }
 
-        const isGreeting = /^(0|menu|start|hi|hello|hey|salam|assalam.*|ہائے|ہیلو|سلام)$/i.test(text);
-        if (isGreeting) {
+        // Global Back to Menu command
+        if (text === '0' || text === 'menu') {
             userState.step = 'WELCOME_MENU';
+            userState.invalidAttempts = 0;
             await sock.sendMessage(sender, { text: t.welcomeMenu });
-            await sendVoiceNote(sock, sender, t.voiceIntro, lang); // ✅ ٹیکسٹ کے ساتھ وائس گائیڈ
+            await sendVoiceNote(sock, sender, t.voiceIntro, lang);
             return;
         }
 
-        // 🎤 VOICE MESSAGE HANDLER (FIXED)
+        // 🎤 VOICE MESSAGE HANDLER
         if (msgType === 'audioMessage') {
             await sock.sendPresenceUpdate('recording', sender);
             try {
-                // ✅ Extract Mimetype securely
-                let mimeType = msg.message.audioMessage.mimetype.split(';')[0];
-                if (!mimeType) mimeType = "audio/ogg";
-
+                let mimeType = msg.message.audioMessage.mimetype.split(';')[0] || "audio/ogg";
                 const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
                 
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
                 const result = await model.generateContent([
-                    "Listen to the user's audio and reply. KEEP IT UNDER 180 CHARACTERS.",
+                    "Listen to the user's audio and reply naturally. KEEP IT UNDER 180 CHARACTERS. Act as Wajid's Bot Assistant.",
                     { inlineData: { data: buffer.toString("base64"), mimeType: mimeType } }
                 ]);
                 
                 const aiResponse = result.response.text();
                 const isUrdu = aiResponse.match(/[\u0600-\u06FF]/);
                 
-                // ✅ Send AI response as Voice Note
                 await sendVoiceNote(sock, sender, aiResponse, isUrdu ? 'ur' : 'en', msg);
-                
-                // (Optional) Send text as backup
-                // await sock.sendMessage(sender, { text: aiResponse });
-
             } catch (e) {
                 console.error("Audio Process Error:", e);
-                await sock.sendMessage(sender, { text: "⚠️ Voice processing issue due to network. Please reply '0' for Menu." }, { quoted: msg });
+                await sock.sendMessage(sender, { text: "⚠️ Voice processing issue. Please reply '0' for Menu." }, { quoted: msg });
             }
             return;
         }
@@ -259,24 +263,40 @@ async function startBot() {
         // ⌨️ TEXT MENU HANDLER
         if (userState.step === 'WELCOME_MENU') {
             if (text === '1') { 
+                userState.invalidAttempts = 0;
                 userState.step = 'SERVICES_MENU';
                 await sock.sendMessage(sender, { text: t.servicesMenu });
             } else if (text === '2') { 
+                userState.invalidAttempts = 0;
                 await sock.sendMessage(sender, { text: t.allDemos });
             } else if (text === '3') { 
-                await sock.sendMessage(sender, { text: t.aiInfo });
-                await sendVoiceNote(sock, sender, t.aiVoiceIntro, lang); // ✅ یوزر کو بول کر بتائے گا
-            } else if (text === '4') { 
+                userState.invalidAttempts = 0;
                 userState.isMuted = true;
                 await sock.sendMessage(sender, { text: t.humanMute });
-            } else if (text === '5') { 
+                await sendVoiceNote(sock, sender, t.humanMuteVoice, lang);
+            } else if (text === '4') { 
+                userState.invalidAttempts = 0;
                 userState.lang = lang === 'en' ? 'ur' : 'en'; 
-                await sock.sendMessage(sender, { text: langText[userState.lang].welcomeMenu });
-                await sendVoiceNote(sock, sender, langText[userState.lang].voiceIntro, userState.lang);
+                const newLang = userState.lang;
+                await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
+                await sendVoiceNote(sock, sender, langText[newLang].voiceIntro, newLang);
             } else {
+                // 🛡️ AUTO HANDOFF LOGIC (If user sends random messages 3 times)
+                userState.invalidAttempts++;
+                if (userState.invalidAttempts >= 3) {
+                    userState.isMuted = true;
+                    await sock.sendMessage(sender, { text: t.humanMute });
+                    await sendVoiceNote(sock, sender, t.humanMuteVoice, lang);
+                    return;
+                }
+                
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
-                await sock.sendMessage(sender, { text: aiReply });
+                if (aiReply) {
+                    await sock.sendMessage(sender, { text: aiReply });
+                } else {
+                    await sock.sendMessage(sender, { text: t.invalidInput });
+                }
             }
             return;
         }
@@ -297,7 +317,7 @@ async function startBot() {
             } else {
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
-                await sock.sendMessage(sender, { text: aiReply });
+                await sock.sendMessage(sender, { text: aiReply || "Please reply 0 for Menu." });
             }
             return;
         }
@@ -309,7 +329,7 @@ async function startBot() {
             } else {
                 await sock.sendPresenceUpdate('composing', sender);
                 const aiReply = await getAIResponse(sender, rawText);
-                await sock.sendMessage(sender, { text: aiReply });
+                await sock.sendMessage(sender, { text: aiReply || "Please reply 0 for Menu." });
             }
             return;
         }
