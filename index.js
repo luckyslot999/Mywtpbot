@@ -106,20 +106,21 @@ const langText = {
 };
 
 // ==========================================
-// 🎤 SEND LOCAL VOICE NOTE FUNCTION
+// 🎤 SEND LOCAL VOICE NOTE FUNCTION (FIXED FOR PLAYBACK)
 // ==========================================
 async function sendLocalVoiceNote(sock, sender, lang) {
-    // Check language to select correct MP3 file
-    const fileName = lang === 'ur' ? 'urduvoice.mp3' : 'englishvoice.mp3';
-    const filePath = path.join(__dirname, fileName); // Root folder detection
+    // ✅ CHANGED to .ogg for 100% WhatsApp Playback compatibility
+    const fileName = lang === 'ur' ? 'urduvoice.ogg' : 'englishvoice.ogg'; 
+    const filePath = path.join(__dirname, fileName);
 
     if (fs.existsSync(filePath)) {
         try {
             const audioBuffer = fs.readFileSync(filePath);
             await sock.sendMessage(sender, { 
                 audio: audioBuffer, 
-                mimetype: 'audio/mpeg', // MP3 is sent as audio/mpeg, works perfectly as PTT
-                ptt: true // Sends as a WhatsApp Voice Note
+                // ✅ This exact mimetype is REQUIRED by WhatsApp to play Voice Notes
+                mimetype: 'audio/ogg; codecs=opus', 
+                ptt: true 
             });
         } catch (err) {
             console.error("Error sending voice note:", err);
@@ -189,10 +190,7 @@ async function startBot() {
 
         // 1️⃣ ANY FIRST MESSAGE HANDLER (Language Detection)
         if (!userStates[sender]) {
-            // Language Detection Logic
-            let detectedLang = 'ur'; // Default is Urdu
-            
-            // If user says hi, hello, english AND message doesn't contain Urdu words/Arabic text
+            let detectedLang = 'ur'; 
             if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
                 detectedLang = 'en';
             }
@@ -201,7 +199,7 @@ async function startBot() {
             const t = langText[detectedLang];
             
             await sock.sendMessage(sender, { text: t.welcomeMenu });
-            await sendLocalVoiceNote(sock, sender, detectedLang); // Send correct Audio
+            await sendLocalVoiceNote(sock, sender, detectedLang);
             return;
         }
 
@@ -266,12 +264,11 @@ async function startBot() {
                 userState.isMuted = true;
                 await sock.sendMessage(sender, { text: t.humanMute });
             } else if (text === '4') { 
-                // Change Language Option
                 userState.invalidAttempts = 0;
                 userState.lang = lang === 'en' ? 'ur' : 'en'; 
                 const newLang = userState.lang;
                 await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
-                await sendLocalVoiceNote(sock, sender, newLang); // Send changed voice
+                await sendLocalVoiceNote(sock, sender, newLang);
             } else {
                 userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
                 if (userState.invalidAttempts >= 3) {
@@ -279,7 +276,7 @@ async function startBot() {
                     await sock.sendMessage(sender, { text: t.humanMute });
                 } else {
                     await sock.sendMessage(sender, { text: t.welcomeMenu });
-                    await sendLocalVoiceNote(sock, sender, lang); // Play menu voice again
+                    await sendLocalVoiceNote(sock, sender, lang);
                 }
             }
             return;
