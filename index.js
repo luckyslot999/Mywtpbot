@@ -1,5 +1,4 @@
 require('dotenv').config();
-// Browsers کو امپورٹ کیا گیا ہے تاکہ واٹس ایپ کنکشن بلاک نہ کرے
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
@@ -149,17 +148,24 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: true, // ✅ اب QR کوڈ ٹرمینل میں پرنٹ ہوگا، سکیننگ آسان ہوگی
+        printQRInTerminal: false, // ❌ ٹرمینل پرنٹنگ بند کر دی گئی ہے
         logger: pino({ level: 'silent' }),
-        // ✅ FIXED: براؤزر کا نام سٹینڈرڈ کر دیا گیا ہے تاکہ WhatsApp کنیکٹ ہونے سے نہ روکے
-        browser: Browsers.ubuntu('Chrome'), 
-        syncFullHistory: false,
-        generateHighQualityLinkPreview: true
+        browser: Browsers.ubuntu('Chrome'), // ✅ "Cannot Connect" ایرر فکس کرنے کے لیے
+        syncFullHistory: false
     });
 
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
+        const { connection, lastDisconnect, qr } = update;
         
+        // ✅ بالکل پہلے والا طریقہ: QR کوڈ اب لنک کی صورت میں لاگز میں آئے گا
+        if (qr) {
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+            console.log('\n========================================================');
+            console.log('🔄 NEW QR CODE GENERATED! Click the link below to scan:');
+            console.log('👉 ' + qrImageUrl);
+            console.log('========================================================\n');
+        }
+
         if (connection === 'open') {
             console.log('✅ W-ASSISTANT IS ONLINE SUCCESSFULLY!');
             debouncedUpload();
@@ -168,11 +174,11 @@ async function startBot() {
             const reason = lastDisconnect?.error?.output?.statusCode;
             console.log('❌ Connection Closed. Reason Code:', reason);
             if (reason !== DisconnectReason.loggedOut) {
-                startBot(); // Auto reconnect
+                startBot();
             } else {
                 console.log('⚠️ LOGGED OUT! Deleting session and restarting...');
                 if (fs.existsSync('session_data')) fs.rmSync('session_data', { recursive: true, force: true });
-                startBot(); // Restart for fresh QR
+                startBot();
             }
         }
     });
