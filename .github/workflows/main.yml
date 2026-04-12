@@ -27,6 +27,8 @@ jobs:
       - name: Start W-Assistant AI Bot
         env:
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
-          # یہ نئی لائن AI کے لیے ایڈ کی گئی ہے
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} 
+          # ElevenLabs کے لیے نئی لائنز ایڈ کی گئی ہیں
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
         run: npm start
