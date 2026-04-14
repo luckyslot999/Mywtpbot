@@ -86,7 +86,10 @@ const langText = {
         },
         askDetails: `🎉 *Great Decision!* Your project is important to us.\n\nPlease send the following details in *ONE single message* so we can get started:\n\n👤 *1. Your Name*\n📞 *2. Phone Number*\n📝 *3. Complete Project Details*\n\n_(Once you send this, Wajid Ali will contact you directly)_`,
         orderConfirmed: `✅ *Order Received Successfully!*\n\nThank you for choosing us. Wajid Ali has received your details and will contact you very shortly. Have a great day! 🌟`,
-        humanMute: `📞 *Connecting to Wajid Ali...*\n\nI have forwarded your request directly to Wajid Ali. Please wait, he will reply to you as soon as he is available. 👨‍💻\n\n_(Type 'bot wake up' anytime to activate me again)_`
+        humanMute: `📞 *Connecting to Wajid Ali...*\n\nI have forwarded your request directly to Wajid Ali. Please wait, he will reply to you as soon as he is available. 👨‍💻\n\n_(Type 'bot wake up' anytime to activate me again)_`,
+        invalidOption: `⚠️ *Invalid Selection!*\nPlease select a valid number from the menu options below.`,
+        autoMuted: `🤖 I understand you want to talk directly to Wajid Ali.\n\n📞 *Redirecting...*\nI have forwarded your chat. Please wait, Wajid Ali will contact you as soon as he is online. 👨‍💻\n\n_(Type 'bot wake up' anytime to activate me again)_`,
+        confirmPrompt: `⚠️ *Please confirm your order!*\nType *YES* to confirm and proceed, or type *0* to go back to the Main Menu.`
     },
     ur: {
         welcomeMenu: `🌟 *واجد علی ڈیجیٹل ایجنسی میں خوش آمدید!* 🌟\n\nمیں واجد کا سمارٹ اسسٹنٹ ہوں۔ آپ کے بزنس کو ڈیجیٹل دنیا میں کامیاب بنانا ہماری ذمہ داری ہے! 🚀\n\n👇 *براہ کرم اپنی ضرورت کے مطابق نیچے دیا گیا کوئی ایک نمبر ٹائپ کر کے سینڈ کریں:*\n\n*1️⃣* ہماری پریمیم ڈیجیٹل سروسز دیکھیں 💼\n*2️⃣* ہمارے کام کے لائیو ڈیموز دیکھیں 🌐\n*3️⃣* واجد علی سے براہ راست بات کریں 👨‍💻\n\n*4️⃣* انگریزی زبان کے لیے (For English) 🇬🇧`,
@@ -101,7 +104,10 @@ const langText = {
         },
         askDetails: `🎉 *زبردست فیصلہ!* آپ کا پروجیکٹ ہمارے لیے بہت اہم ہے۔\n\nبراہ کرم ایک ہی میسج میں اپنی یہ تفصیلات لکھ کر بھیجیں تاکہ ہم کام شروع کر سکیں:\n\n👤 *1. آپ کا نام*\n📞 *2. آپ کا فون نمبر*\n📝 *3. پروجیکٹ کی مکمل تفصیل*\n\n_(جیسے ہی آپ تفصیلات بھیجیں گے، واجد علی خود آپ سے رابطہ کریں گے)_`,
         orderConfirmed: `✅ *آپ کا آرڈر موصول ہو گیا ہے!*\n\nہم پر اعتماد کرنے کا شکریہ۔ واجد علی کو آپ کی تفصیلات مل گئی ہیں اور وہ بہت جلد آپ سے رابطہ کریں گے۔ آپ کا دن خوشگوار گزرے! 🌟`,
-        humanMute: `📞 *واجد علی سے رابطہ کیا جا رہا ہے...*\n\nمیں نے آپ کا میسج براہ راست واجد علی کو فارورڈ کر دیا ہے۔ براہ کرم انتظار کریں، وہ جیسے ہی فری ہوں گے آپ کو ریپلائی کریں گے۔ 👨‍💻\n\n_(بوٹ کو دوبارہ آن کرنے کے لیے کسی بھی وقت 'bot wake up' لکھیں)_`
+        humanMute: `📞 *واجد علی سے رابطہ کیا جا رہا ہے...*\n\nمیں نے آپ کا میسج براہ راست واجد علی کو فارورڈ کر دیا ہے۔ براہ کرم انتظار کریں، وہ جیسے ہی فری ہوں گے آپ کو ریپلائی کریں گے۔ 👨‍💻\n\n_(بوٹ کو دوبارہ آن کرنے کے لیے کسی بھی وقت 'bot wake up' لکھیں)_`,
+        invalidOption: `⚠️ *غلط انتخاب!*\nبراہ کرم دیے گئے مینیو میں سے کوئی درست نمبر (جیسے 1، 2، یا 3) ٹائپ کر کے سینڈ کریں۔`,
+        autoMuted: `🤖 میں سمجھ گیا ہوں کہ آپ براہ راست واجد علی سے بات کرنا چاہتے ہیں۔\n\n📞 *ری ڈائریکٹ کیا جا رہا ہے...*\nمیں نے آپ کا نمبر واجد علی کو فارورڈ کر دیا ہے۔ جیسے ہی وہ آن لائن ہوں گے وہ خود آپ سے رابطہ کر لیں گے۔ 👨‍💻\n\n_(بوٹ کو دوبارہ آن کرنے کے لیے کسی بھی وقت 'bot wake up' لکھیں)_`,
+        confirmPrompt: `⚠️ *براہ کرم آرڈر کنفرم کریں!*\nآگے بڑھنے کے لیے *YES* لکھیں، یا مین مینیو میں واپس جانے کے لیے *0* ٹائپ کریں۔`
     }
 };
 
@@ -119,7 +125,6 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        // ✅ YAHAN QR ERROR KA FIX LAGA HAI (Browser Spoofing)
         browser: ['Mac OS', 'Chrome', '121.0.6167.159'], 
         syncFullHistory: false
     });
@@ -127,7 +132,6 @@ async function startBot() {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         
-        // ✅ QR CODE LINK GENERATION
         if (qr) {
             const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
             console.log('\n===================================================');
@@ -142,13 +146,10 @@ async function startBot() {
         }
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            
-            // ✅ Agar WhatsApp QR reject kare (ya log out ho) tou session auto-delete ho jaye
             if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                console.log("⚠️ سیشن لاگ آؤٹ ہو گیا یا کیو آر ریجیکٹ ہوا! پرانا ڈیٹا ڈیلیٹ کر کے نیا کیو آر آ رہا ہے...");
+                console.log("⚠️ Session logged out or QR rejected. Deleting old session...");
                 if (fs.existsSync('session_data')) fs.rmSync('session_data', { recursive: true, force: true });
             }
-            
             startBot();
         }
     });
@@ -167,7 +168,7 @@ async function startBot() {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
         const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        // 1️⃣ ANY FIRST MESSAGE HANDLER (Language Detection)
+        // 1️⃣ ANY FIRST MESSAGE HANDLER (Language Detection & Welcome)
         if (!userStates[sender]) {
             let detectedLang = 'ur'; 
             if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
@@ -185,7 +186,7 @@ async function startBot() {
         const lang = userState.lang;
         const t = langText[lang];
 
-        // 🔇 IF BOT IS MUTED
+        // 🔇 IF BOT IS MUTED (Redirected to human)
         if (userState.isMuted) {
             if (text === "bot wake up") {
                 userState.isMuted = false;
@@ -245,18 +246,19 @@ async function startBot() {
                 const newLang = userState.lang;
                 await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
             } else {
+                // Invalid Input Handler & 3-Strikes logic
                 userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
                 if (userState.invalidAttempts >= 3) {
                     userState.isMuted = true;
-                    await sock.sendMessage(sender, { text: t.humanMute });
+                    await sock.sendMessage(sender, { text: t.autoMuted });
                 } else {
-                    await sock.sendMessage(sender, { text: t.welcomeMenu });
+                    await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.welcomeMenu}` });
                 }
             }
             return;
         }
 
-        // SERVICES MENU
+        // 🚀 SERVICES MENU
         if (userState.step === 'SERVICES_MENU') {
             const categories = {
                 '1': { name: 'Website Development', demo: t.demos.web },
@@ -267,25 +269,29 @@ async function startBot() {
             };
 
             if (categories[text]) {
+                userState.invalidAttempts = 0;
                 userState.step = 'WAITING_FOR_ORDER_CONFIRM';
                 userState.category = categories[text].name;
                 await sock.sendMessage(sender, { text: categories[text].demo });
             } else {
-                await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں / Type 0 for Menu" });
+                await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.servicesMenu}` });
             }
             return;
         }
 
+        // ✅ WAITING FOR YES OR NO
         if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
             if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
                 userState.step = 'WAITING_FOR_DETAILS';
                 await sock.sendMessage(sender, { text: t.askDetails });
             } else {
-                await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں / Type 0 for Menu" });
+                // Agar user YES ke ilawa kuch likhta hai
+                await sock.sendMessage(sender, { text: t.confirmPrompt });
             }
             return;
         }
 
+        // 📝 WAITING FOR CLIENT DETAILS
         if (userState.step === 'WAITING_FOR_DETAILS') {
             const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
             if (FIREBASE_URL) {
