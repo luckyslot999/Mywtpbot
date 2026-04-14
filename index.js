@@ -10,7 +10,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // 🌐 RENDER 24/7 UPTIME SERVER
 // ==========================================
 const app = express();
-app.get('/', (req, res) => res.send('🤖 Wajid Ali Digital Agency AI is Running 24/7!'));
+app.get('/', (req, res) => res.send('🤖 Wajid Ali Digital Agency AI is Running 24/7 for Multiple Numbers!'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
@@ -31,42 +31,53 @@ Rule 3: Keep your response SHORT (under 180 characters).
 Rule 4: Reply in the language the user speaks (English or Urdu).`;
 
 const userStates = {}; 
-const chatSessions = {};
 
 // ==========================================
-// 🔥 FIREBASE SESSION MANAGEMENT
+// 📱 TARGET WHATSAPP NUMBERS FOR PAIRING
 // ==========================================
-async function downloadSession() {
+// نوٹ: نمبروں کے شروع میں 92 لگانا لازمی ہے اور + نہیں لگانا
+const TARGET_NUMBERS = [
+    "923139071038",
+    "923019022815",
+    "923499085004"
+];
+
+// ==========================================
+// 🔥 FIREBASE SESSION MANAGEMENT (Multi-Number)
+// ==========================================
+async function downloadSession(phoneNumber) {
     if (!FIREBASE_URL) return;
     try {
-        const response = await fetch(`${FIREBASE_URL}/whatsapp_session.json`);
+        const response = await fetch(`${FIREBASE_URL}/sessions/${phoneNumber}.json`);
         const data = await response.json();
+        const sessionFolder = `session_${phoneNumber}`;
         if (data && Object.keys(data).length > 0) {
-            if (!fs.existsSync('session_data')) fs.mkdirSync('session_data', { recursive: true });
+            if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder, { recursive: true });
             for (const file in data) {
                 let content = typeof data[file] === 'string' ? data[file] : JSON.stringify(data[file]);
-                fs.writeFileSync(path.join('session_data', file), content);
+                fs.writeFileSync(path.join(sessionFolder, file), content);
             }
         }
     } catch (error) {}
 }
 
-async function uploadSession() {
-    if (!FIREBASE_URL || !fs.existsSync('session_data')) return;
+async function uploadSession(phoneNumber) {
+    const sessionFolder = `session_${phoneNumber}`;
+    if (!FIREBASE_URL || !fs.existsSync(sessionFolder)) return;
     try {
-        const files = fs.readdirSync('session_data');
+        const files = fs.readdirSync(sessionFolder);
         let sessionObj = {};
         for (const file of files) {
-            if(file.endsWith('.json')) sessionObj[file] = fs.readFileSync(path.join('session_data', file), 'utf-8');
+            if(file.endsWith('.json')) sessionObj[file] = fs.readFileSync(path.join(sessionFolder, file), 'utf-8');
         }
-        await fetch(`${FIREBASE_URL}/whatsapp_session.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sessionObj) });
+        await fetch(`${FIREBASE_URL}/sessions/${phoneNumber}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sessionObj) });
     } catch (error) {}
 }
 
-let syncTimeout = null;
-function debouncedUpload() {
-    if (syncTimeout) clearTimeout(syncTimeout);
-    syncTimeout = setTimeout(async () => { await uploadSession(); }, 5000);
+const syncTimeouts = {};
+function debouncedUpload(phoneNumber) {
+    if (syncTimeouts[phoneNumber]) clearTimeout(syncTimeouts[phoneNumber]);
+    syncTimeouts[phoneNumber] = setTimeout(async () => { await uploadSession(phoneNumber); }, 5000);
 }
 
 // ==========================================
@@ -112,51 +123,59 @@ const langText = {
 };
 
 // ==========================================
-// 🚀 BOT START (QR FIX APPLIED)
+// 🚀 BOT START (PAIRING CODE FOR MULTIPLE NUMBERS)
 // ==========================================
-async function startBot() {
-    await downloadSession();
+async function startBotForNumber(phoneNumber) {
+    const sessionFolder = `session_${phoneNumber}`;
+    await downloadSession(phoneNumber);
 
-    const { state, saveCreds } = await useMultiFileAuthState('session_data');
+    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: false, // QR CODE BAND KAR DIYA
         logger: pino({ level: 'silent' }),
-        browser: ['Mac OS', 'Chrome', '121.0.6167.159'], 
+        browser: Browsers.ubuntu('Chrome'), // Pairing Code ke liye ye browser best hai
         syncFullHistory: false
     });
 
+    // 🔑 PAIRING CODE GENERATOR LOGIC
+    if (!sock.authState.creds.registered) {
+        setTimeout(async () => {
+            try {
+                const code = await sock.requestPairingCode(phoneNumber);
+                console.log('\n===================================================');
+                console.log(`🔑 PAIRING CODE FOR NUMBER [${phoneNumber}]: ${code}`);
+                console.log(`👉 Apne WhatsApp mein jayen -> Linked Devices -> Link with Phone Number -> Ye code enter karein.`);
+                console.log('===================================================\n');
+            } catch (err) {
+                console.log(`⚠️ Error generating pairing code for ${phoneNumber}:`, err.message);
+            }
+        }, 3000); // 3 second ka delay Baileys ki requirement hai
+    }
+
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-            console.log('\n===================================================');
-            console.log('🔄 NEW QR CODE GENERATED! CLICK THE LINK BELOW TO SCAN:');
-            console.log('👉 ' + qrImageUrl);
-            console.log('===================================================\n');
-        }
+        const { connection, lastDisconnect } = update;
         
         if (connection === 'open') {
-            console.log('✅ WAJID ALI AI IS ONLINE! (PREMIUM TEXT MODE)');
-            debouncedUpload();
+            console.log(`✅ BOT IS ONLINE FOR NUMBER: ${phoneNumber}`);
+            debouncedUpload(phoneNumber);
         }
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                console.log("⚠️ Session logged out or QR rejected. Deleting old session...");
-                if (fs.existsSync('session_data')) fs.rmSync('session_data', { recursive: true, force: true });
+                console.log(`⚠️ Session logged out for ${phoneNumber}. Deleting old session...`);
+                if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
             }
-            startBot();
+            startBotForNumber(phoneNumber); // Auto-reconnect
         }
     });
 
     sock.ev.on('creds.update', async () => {
         await saveCreds();
-        debouncedUpload();
+        debouncedUpload(phoneNumber);
     });
 
     sock.ev.on('messages.upsert', async (m) => {
@@ -168,7 +187,7 @@ async function startBot() {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
         const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        // 1️⃣ ANY FIRST MESSAGE HANDLER (Language Detection & Welcome)
+        // 1️⃣ ANY FIRST MESSAGE HANDLER
         if (!userStates[sender]) {
             let detectedLang = 'ur'; 
             if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
@@ -186,7 +205,7 @@ async function startBot() {
         const lang = userState.lang;
         const t = langText[lang];
 
-        // 🔇 IF BOT IS MUTED (Redirected to human)
+        // 🔇 IF BOT IS MUTED
         if (userState.isMuted) {
             if (text === "bot wake up") {
                 userState.isMuted = false;
@@ -246,7 +265,6 @@ async function startBot() {
                 const newLang = userState.lang;
                 await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
             } else {
-                // Invalid Input Handler & 3-Strikes logic
                 userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
                 if (userState.invalidAttempts >= 3) {
                     userState.isMuted = true;
@@ -285,7 +303,6 @@ async function startBot() {
                 userState.step = 'WAITING_FOR_DETAILS';
                 await sock.sendMessage(sender, { text: t.askDetails });
             } else {
-                // Agar user YES ke ilawa kuch likhta hai
                 await sock.sendMessage(sender, { text: t.confirmPrompt });
             }
             return;
@@ -306,4 +323,16 @@ async function startBot() {
     });
 }
 
-startBot().catch(err => console.log("Error: " + err));
+// ==========================================
+// 🚀 RUN BOT FOR ALL NUMBERS SIMULTANEOUSLY
+// ==========================================
+async function startAllBots() {
+    for (const number of TARGET_NUMBERS) {
+        console.log(`⏳ Starting setup for number: ${number}...`);
+        await startBotForNumber(number);
+        // Har bot start hone ke darmayan thora delay diya hai taake crash na ho
+        await new Promise(resolve => setTimeout(resolve, 5000)); 
+    }
+}
+
+startAllBots().catch(err => console.log("Critical Error: " + err));
