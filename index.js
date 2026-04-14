@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -41,7 +41,7 @@ const TARGET_NUMBERS = [
     "923499085004"
 ];
 
-// 🧹 پرانا مین سیشن فولڈر ڈیلیٹ کرنے کا فنکشن (تاکہ کوئی Conflict نہ ہو)
+// 🧹 پرانا مین سیشن فولڈر ڈیلیٹ کرنے کا فنکشن
 if (fs.existsSync('session_data')) {
     console.log("🧹 Cleaning up old legacy session data...");
     fs.rmSync('session_data', { recursive: true, force: true });
@@ -128,230 +128,237 @@ const langText = {
 };
 
 // ==========================================
-// 🚀 BOT START (QR + PAIRING CODE)
+// 🚀 BOT START WITH SEQUENTIAL PROMISE
 // ==========================================
-async function startBotForNumber(phoneNumber) {
-    const sessionFolder = `session_${phoneNumber}`;
-    await downloadSession(phoneNumber);
+function startBotForNumber(phoneNumber) {
+    return new Promise(async (resolve) => {
+        let isResolved = false; // ٹریک کرنے کے لئے کہ کیا یہ نمبر لنک ہو چکا ہے
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-    const { version } = await fetchLatestBaileysVersion();
+        const connectWhatsApp = async () => {
+            const sessionFolder = `session_${phoneNumber}`;
+            await downloadSession(phoneNumber);
 
-    const sock = makeWASocket({
-        version,
-        auth: state,
-        printQRInTerminal: false, 
-        logger: pino({ level: 'silent' }),
-        browser: Browsers.ubuntu('Chrome'), // Ubuntu Chrome is best for pairing
-        syncFullHistory: false
-    });
+            const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+            const { version } = await fetchLatestBaileysVersion();
 
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        // ✅ GENERATE BOTH QR AND PAIRING CODE
-        if (qr) {
-            console.log('\n===================================================');
-            console.log(`📱 ACTION REQUIRED FOR NUMBER: [${phoneNumber}]`);
-            
-            // 1. QR CODE LINK
-            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-            console.log(`\n🔗 OPTION 1 (SCAN QR CODE): \n👉 ${qrImageUrl}`);
-            
-            // 2. PAIRING CODE
-            if (!sock.authState.creds.registered) {
-                try {
-                    setTimeout(async () => {
-                        let code = await sock.requestPairingCode(phoneNumber);
-                        let formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-                        console.log(`\n🔑 OPTION 2 (PAIRING CODE): \n👉 ${formattedCode}`);
-                        console.log(`\n(To use code: Open WhatsApp -> Linked Devices -> Link with Phone Number)`);
-                        console.log('===================================================\n');
-                    }, 2500); 
-                } catch (err) {
-                    console.log(`⚠️ Pairing Code Error for ${phoneNumber}:`, err.message);
-                }
-            }
-        }
-        
-        if (connection === 'open') {
-            console.log(`✅ BOT IS FULLY ONLINE FOR NUMBER: ${phoneNumber}`);
-            debouncedUpload(phoneNumber);
-        }
-        
-        if (connection === 'close') {
-            const reason = lastDisconnect?.error?.output?.statusCode;
-            if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                console.log(`⚠️ Session crashed/logged out for ${phoneNumber}. Cleaning up...`);
-                if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
-            }
-            startBotForNumber(phoneNumber); // Auto-reconnect
-        }
-    });
+            const sock = makeWASocket({
+                version,
+                auth: state,
+                printQRInTerminal: false, 
+                logger: pino({ level: 'silent' }),
+                browser: ['Ubuntu', 'Chrome', '20.0.04'], // یہ براؤزر پیئرنگ کے لئے بہترین ہے
+                syncFullHistory: false
+            });
 
-    sock.ev.on('creds.update', async () => {
-        await saveCreds();
-        debouncedUpload(phoneNumber);
-    });
-
-    sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0];
-        if (!msg.message || msg.key.remoteJid === 'status@broadcast' || msg.key.fromMe) return;
-
-        const sender = msg.key.remoteJid;
-        const msgType = Object.keys(msg.message)[0];
-        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
-        const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
-
-        // 1️⃣ ANY FIRST MESSAGE HANDLER
-        if (!userStates[sender]) {
-            let detectedLang = 'ur'; 
-            if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
-                detectedLang = 'en';
-            }
-
-            userStates[sender] = { step: 'WELCOME_MENU', lang: detectedLang, isMuted: false, invalidAttempts: 0 };
-            const t = langText[detectedLang];
-            
-            await sock.sendMessage(sender, { text: t.welcomeMenu });
-            return;
-        }
-
-        const userState = userStates[sender];
-        const lang = userState.lang;
-        const t = langText[lang];
-
-        // 🔇 IF BOT IS MUTED
-        if (userState.isMuted) {
-            if (text === "bot wake up") {
-                userState.isMuted = false;
-                userState.step = 'WELCOME_MENU';
-                userState.invalidAttempts = 0;
-                await sock.sendMessage(sender, { text: t.welcomeMenu });
-            }
-            return; 
-        }
-
-        // 🔙 GLOBAL BACK TO MENU
-        if (text === '0' || text === 'menu') {
-            userState.step = 'WELCOME_MENU';
-            userState.invalidAttempts = 0;
-            await sock.sendMessage(sender, { text: t.welcomeMenu });
-            return;
-        }
-
-        // 🎤 USER SENDS VOICE MESSAGE
-        if (msgType === 'audioMessage') {
-            await sock.sendPresenceUpdate('composing', sender);
-            try {
-                let mimeType = msg.message.audioMessage.mimetype.split(';')[0] || "audio/ogg";
-                const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
+            sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
                 
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
-                const result = await model.generateContent([
-                    "Listen to the user's audio and reply naturally. Keep it under 180 characters.",
-                    { inlineData: { data: buffer.toString("base64"), mimeType: mimeType } }
-                ]);
-                
-                const aiResponse = result.response.text();
-                await sock.sendMessage(sender, { text: aiResponse }, { quoted: msg });
-            } catch (e) {
-                console.error("Audio Process Error:", e);
-                await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں" }, { quoted: msg });
-            }
-            return;
-        }
-
-        // ⌨️ MENU NAVIGATION
-        if (userState.step === 'WELCOME_MENU') {
-            if (text === '1') { 
-                userState.invalidAttempts = 0;
-                userState.step = 'SERVICES_MENU';
-                await sock.sendMessage(sender, { text: t.servicesMenu });
-            } else if (text === '2') { 
-                userState.invalidAttempts = 0;
-                await sock.sendMessage(sender, { text: t.allDemos });
-            } else if (text === '3') { 
-                userState.invalidAttempts = 0;
-                userState.isMuted = true;
-                await sock.sendMessage(sender, { text: t.humanMute });
-            } else if (text === '4') { 
-                userState.invalidAttempts = 0;
-                userState.lang = lang === 'en' ? 'ur' : 'en'; 
-                const newLang = userState.lang;
-                await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
-            } else {
-                userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
-                if (userState.invalidAttempts >= 3) {
-                    userState.isMuted = true;
-                    await sock.sendMessage(sender, { text: t.autoMuted });
-                } else {
-                    await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.welcomeMenu}` });
+                // ✅ جب نیا QR یا کوڈ بنے (ہر 40-50 سیکنڈ بعد واٹس ایپ خود اس کو اپڈیٹ کرتا ہے)
+                if (qr) {
+                    console.log('\n===================================================');
+                    console.log(`⏳ WAITING FOR LINK: [${phoneNumber}]`);
+                    
+                    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+                    console.log(`\n🔗 QR LINK:\n👉 ${qrImageUrl}`);
+                    
+                    if (!sock.authState.creds.registered) {
+                        setTimeout(async () => {
+                            try {
+                                let code = await sock.requestPairingCode(phoneNumber);
+                                let formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
+                                console.log(`\n🔑 PAIRING CODE:\n👉 ${formattedCode}`);
+                                console.log(`\n(نوٹ: یہ کوڈ 50 سیکنڈ کے لئے ویلڈ ہے۔ جلدی سے واٹس ایپ میں لگائیں)`);
+                                console.log('===================================================\n');
+                            } catch (err) {
+                                // خاموشی سے اگلی ٹرائی کا انتظار کریں
+                            }
+                        }, 2500); 
+                    }
                 }
-            }
-            return;
-        }
+                
+                // ✅ اگر نمبر کامیابی سے لاگ ان ہو جائے
+                if (connection === 'open') {
+                    console.log(`\n✅ SUCCESS! BOT IS ONLINE FOR NUMBER: ${phoneNumber}`);
+                    debouncedUpload(phoneNumber);
+                    
+                    if (!isResolved) {
+                        isResolved = true;
+                        resolve(); // 🚀 اگلا نمبر شروع کرنے کے لئے سگنل بھیجیں
+                    }
+                }
+                
+                // ❌ اگر سیشن بند ہو یا کریش ہو جائے
+                if (connection === 'close') {
+                    const reason = lastDisconnect?.error?.output?.statusCode;
+                    if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
+                        console.log(`⚠️ Session crashed/logged out for ${phoneNumber}. Cleaning up...`);
+                        if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
+                    }
+                    connectWhatsApp(); // پس منظر میں خود بخود ری کنیکٹ کرے
+                }
+            });
 
-        // 🚀 SERVICES MENU
-        if (userState.step === 'SERVICES_MENU') {
-            const categories = {
-                '1': { name: 'Website Development', demo: t.demos.web },
-                '2': { name: 'App & Game Development', demo: t.demos.app },
-                '3': { name: 'Graphics Designing', demo: t.demos.graphics },
-                '4': { name: 'Advertisement & Marketing', demo: t.demos.ads },
-                '5': { name: 'WhatsApp Bot Development', demo: t.demos.bot }
-            };
+            sock.ev.on('creds.update', async () => {
+                await saveCreds();
+                debouncedUpload(phoneNumber);
+            });
 
-            if (categories[text]) {
-                userState.invalidAttempts = 0;
-                userState.step = 'WAITING_FOR_ORDER_CONFIRM';
-                userState.category = categories[text].name;
-                await sock.sendMessage(sender, { text: categories[text].demo });
-            } else {
-                await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.servicesMenu}` });
-            }
-            return;
-        }
+            sock.ev.on('messages.upsert', async (m) => {
+                const msg = m.messages[0];
+                if (!msg.message || msg.key.remoteJid === 'status@broadcast' || msg.key.fromMe) return;
 
-        // ✅ WAITING FOR YES OR NO
-        if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
-            if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
-                userState.step = 'WAITING_FOR_DETAILS';
-                await sock.sendMessage(sender, { text: t.askDetails });
-            } else {
-                await sock.sendMessage(sender, { text: t.confirmPrompt });
-            }
-            return;
-        }
+                const sender = msg.key.remoteJid;
+                const msgType = Object.keys(msg.message)[0];
+                const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
+                const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-        // 📝 WAITING FOR CLIENT DETAILS
-        if (userState.step === 'WAITING_FOR_DETAILS') {
-            const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
-            if (FIREBASE_URL) {
-                try {
-                    await fetch(`${FIREBASE_URL}/leads.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) });
-                } catch (error) {}
-            }
-            userState.step = 'WELCOME_MENU'; 
-            await sock.sendMessage(sender, { text: t.orderConfirmed });
-            return;
-        }
+                // 1️⃣ ANY FIRST MESSAGE HANDLER
+                if (!userStates[sender]) {
+                    let detectedLang = 'ur'; 
+                    if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
+                        detectedLang = 'en';
+                    }
+
+                    userStates[sender] = { step: 'WELCOME_MENU', lang: detectedLang, isMuted: false, invalidAttempts: 0 };
+                    const t = langText[detectedLang];
+                    
+                    await sock.sendMessage(sender, { text: t.welcomeMenu });
+                    return;
+                }
+
+                const userState = userStates[sender];
+                const lang = userState.lang;
+                const t = langText[lang];
+
+                if (userState.isMuted) {
+                    if (text === "bot wake up") {
+                        userState.isMuted = false;
+                        userState.step = 'WELCOME_MENU';
+                        userState.invalidAttempts = 0;
+                        await sock.sendMessage(sender, { text: t.welcomeMenu });
+                    }
+                    return; 
+                }
+
+                if (text === '0' || text === 'menu') {
+                    userState.step = 'WELCOME_MENU';
+                    userState.invalidAttempts = 0;
+                    await sock.sendMessage(sender, { text: t.welcomeMenu });
+                    return;
+                }
+
+                if (msgType === 'audioMessage') {
+                    await sock.sendPresenceUpdate('composing', sender);
+                    try {
+                        let mimeType = msg.message.audioMessage.mimetype.split(';')[0] || "audio/ogg";
+                        const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
+                        
+                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
+                        const result = await model.generateContent([
+                            "Listen to the user's audio and reply naturally. Keep it under 180 characters.",
+                            { inlineData: { data: buffer.toString("base64"), mimeType: mimeType } }
+                        ]);
+                        
+                        const aiResponse = result.response.text();
+                        await sock.sendMessage(sender, { text: aiResponse }, { quoted: msg });
+                    } catch (e) {
+                        await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں" }, { quoted: msg });
+                    }
+                    return;
+                }
+
+                if (userState.step === 'WELCOME_MENU') {
+                    if (text === '1') { 
+                        userState.invalidAttempts = 0;
+                        userState.step = 'SERVICES_MENU';
+                        await sock.sendMessage(sender, { text: t.servicesMenu });
+                    } else if (text === '2') { 
+                        userState.invalidAttempts = 0;
+                        await sock.sendMessage(sender, { text: t.allDemos });
+                    } else if (text === '3') { 
+                        userState.invalidAttempts = 0;
+                        userState.isMuted = true;
+                        await sock.sendMessage(sender, { text: t.humanMute });
+                    } else if (text === '4') { 
+                        userState.invalidAttempts = 0;
+                        userState.lang = lang === 'en' ? 'ur' : 'en'; 
+                        const newLang = userState.lang;
+                        await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
+                    } else {
+                        userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
+                        if (userState.invalidAttempts >= 3) {
+                            userState.isMuted = true;
+                            await sock.sendMessage(sender, { text: t.autoMuted });
+                        } else {
+                            await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.welcomeMenu}` });
+                        }
+                    }
+                    return;
+                }
+
+                if (userState.step === 'SERVICES_MENU') {
+                    const categories = {
+                        '1': { name: 'Website Development', demo: t.demos.web },
+                        '2': { name: 'App & Game Development', demo: t.demos.app },
+                        '3': { name: 'Graphics Designing', demo: t.demos.graphics },
+                        '4': { name: 'Advertisement & Marketing', demo: t.demos.ads },
+                        '5': { name: 'WhatsApp Bot Development', demo: t.demos.bot }
+                    };
+
+                    if (categories[text]) {
+                        userState.invalidAttempts = 0;
+                        userState.step = 'WAITING_FOR_ORDER_CONFIRM';
+                        userState.category = categories[text].name;
+                        await sock.sendMessage(sender, { text: categories[text].demo });
+                    } else {
+                        await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.servicesMenu}` });
+                    }
+                    return;
+                }
+
+                if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
+                    if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
+                        userState.step = 'WAITING_FOR_DETAILS';
+                        await sock.sendMessage(sender, { text: t.askDetails });
+                    } else {
+                        await sock.sendMessage(sender, { text: t.confirmPrompt });
+                    }
+                    return;
+                }
+
+                if (userState.step === 'WAITING_FOR_DETAILS') {
+                    const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
+                    if (FIREBASE_URL) {
+                        try {
+                            await fetch(`${FIREBASE_URL}/leads.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) });
+                        } catch (error) {}
+                    }
+                    userState.step = 'WELCOME_MENU'; 
+                    await sock.sendMessage(sender, { text: t.orderConfirmed });
+                    return;
+                }
+            });
+        };
+
+        connectWhatsApp();
     });
 }
 
 // ==========================================
-// 🚀 RUN BOT FOR ALL NUMBERS SIMULTANEOUSLY
+// 🚀 RUN BOT FOR ALL NUMBERS (ONE BY ONE)
 // ==========================================
 async function startAllBots() {
     for (let i = 0; i < TARGET_NUMBERS.length; i++) {
         const number = TARGET_NUMBERS[i];
-        console.log(`\n⏳ Initializing Bot for Number: ${number}... Please wait.`);
-        await startBotForNumber(number);
+        console.log(`\n===================================================`);
+        console.log(`🚀 STARTING SETUP FOR NUMBER: ${number}`);
+        console.log(`===================================================`);
         
-        // 15 سیکنڈ کا وقفہ دیا ہے تاکہ آپ کو ایک نمبر کا کوڈ لگانے کا ٹائم مل سکے
-        // اس سے کوڈز آپس میں مکس نہیں ہوں گے
-        await new Promise(resolve => setTimeout(resolve, 15000)); 
+        // یہاں کوڈ رک جائے گا جب تک آپ اس نمبر کو واٹس ایپ سے لنک نہیں کر لیتے۔
+        // جب لنک ہو جائے گا تو خود بخود اگلا نمبر شروع ہو جائے گا۔
+        await startBotForNumber(number);
     }
+    console.log(`\n🎉 ALL 3 NUMBERS ARE SUCCESSFULLY LINKED AND ONLINE!`);
 }
 
 startAllBots().catch(err => console.log("Critical Error: " + err));
