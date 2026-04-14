@@ -35,15 +35,20 @@ const userStates = {};
 // ==========================================
 // 📱 TARGET WHATSAPP NUMBERS FOR PAIRING
 // ==========================================
-// نوٹ: نمبروں کے شروع میں 92 لگانا لازمی ہے اور + نہیں لگانا
 const TARGET_NUMBERS = [
     "923139071038",
     "923019022815",
     "923499085004"
 ];
 
+// 🧹 پرانا مین سیشن فولڈر ڈیلیٹ کرنے کا فنکشن (تاکہ کوئی Conflict نہ ہو)
+if (fs.existsSync('session_data')) {
+    console.log("🧹 Cleaning up old legacy session data...");
+    fs.rmSync('session_data', { recursive: true, force: true });
+}
+
 // ==========================================
-// 🔥 FIREBASE SESSION MANAGEMENT (Multi-Number)
+// 🔥 FIREBASE SESSION MANAGEMENT
 // ==========================================
 async function downloadSession(phoneNumber) {
     if (!FIREBASE_URL) return;
@@ -81,7 +86,7 @@ function debouncedUpload(phoneNumber) {
 }
 
 // ==========================================
-// 🌐 ENHANCED DICTIONARY (Premium Copywriting)
+// 🌐 ENHANCED DICTIONARY
 // ==========================================
 const langText = {
     en: {
@@ -123,7 +128,7 @@ const langText = {
 };
 
 // ==========================================
-// 🚀 BOT START (PAIRING CODE FOR MULTIPLE NUMBERS)
+// 🚀 BOT START (QR + PAIRING CODE)
 // ==========================================
 async function startBotForNumber(phoneNumber) {
     const sessionFolder = `session_${phoneNumber}`;
@@ -135,38 +140,49 @@ async function startBotForNumber(phoneNumber) {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false, // QR CODE BAND KAR DIYA
+        printQRInTerminal: false, 
         logger: pino({ level: 'silent' }),
-        browser: Browsers.ubuntu('Chrome'), // Pairing Code ke liye ye browser best hai
+        browser: Browsers.ubuntu('Chrome'), // Ubuntu Chrome is best for pairing
         syncFullHistory: false
     });
 
-    // 🔑 PAIRING CODE GENERATOR LOGIC
-    if (!sock.authState.creds.registered) {
-        setTimeout(async () => {
-            try {
-                const code = await sock.requestPairingCode(phoneNumber);
-                console.log('\n===================================================');
-                console.log(`🔑 PAIRING CODE FOR NUMBER [${phoneNumber}]: ${code}`);
-                console.log(`👉 Apne WhatsApp mein jayen -> Linked Devices -> Link with Phone Number -> Ye code enter karein.`);
-                console.log('===================================================\n');
-            } catch (err) {
-                console.log(`⚠️ Error generating pairing code for ${phoneNumber}:`, err.message);
-            }
-        }, 3000); // 3 second ka delay Baileys ki requirement hai
-    }
-
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
+        const { connection, lastDisconnect, qr } = update;
+        
+        // ✅ GENERATE BOTH QR AND PAIRING CODE
+        if (qr) {
+            console.log('\n===================================================');
+            console.log(`📱 ACTION REQUIRED FOR NUMBER: [${phoneNumber}]`);
+            
+            // 1. QR CODE LINK
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+            console.log(`\n🔗 OPTION 1 (SCAN QR CODE): \n👉 ${qrImageUrl}`);
+            
+            // 2. PAIRING CODE
+            if (!sock.authState.creds.registered) {
+                try {
+                    setTimeout(async () => {
+                        let code = await sock.requestPairingCode(phoneNumber);
+                        let formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
+                        console.log(`\n🔑 OPTION 2 (PAIRING CODE): \n👉 ${formattedCode}`);
+                        console.log(`\n(To use code: Open WhatsApp -> Linked Devices -> Link with Phone Number)`);
+                        console.log('===================================================\n');
+                    }, 2500); 
+                } catch (err) {
+                    console.log(`⚠️ Pairing Code Error for ${phoneNumber}:`, err.message);
+                }
+            }
+        }
         
         if (connection === 'open') {
-            console.log(`✅ BOT IS ONLINE FOR NUMBER: ${phoneNumber}`);
+            console.log(`✅ BOT IS FULLY ONLINE FOR NUMBER: ${phoneNumber}`);
             debouncedUpload(phoneNumber);
         }
+        
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                console.log(`⚠️ Session logged out for ${phoneNumber}. Deleting old session...`);
+                console.log(`⚠️ Session crashed/logged out for ${phoneNumber}. Cleaning up...`);
                 if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
             }
             startBotForNumber(phoneNumber); // Auto-reconnect
@@ -327,11 +343,14 @@ async function startBotForNumber(phoneNumber) {
 // 🚀 RUN BOT FOR ALL NUMBERS SIMULTANEOUSLY
 // ==========================================
 async function startAllBots() {
-    for (const number of TARGET_NUMBERS) {
-        console.log(`⏳ Starting setup for number: ${number}...`);
+    for (let i = 0; i < TARGET_NUMBERS.length; i++) {
+        const number = TARGET_NUMBERS[i];
+        console.log(`\n⏳ Initializing Bot for Number: ${number}... Please wait.`);
         await startBotForNumber(number);
-        // Har bot start hone ke darmayan thora delay diya hai taake crash na ho
-        await new Promise(resolve => setTimeout(resolve, 5000)); 
+        
+        // 15 سیکنڈ کا وقفہ دیا ہے تاکہ آپ کو ایک نمبر کا کوڈ لگانے کا ٹائم مل سکے
+        // اس سے کوڈز آپس میں مکس نہیں ہوں گے
+        await new Promise(resolve => setTimeout(resolve, 15000)); 
     }
 }
 
