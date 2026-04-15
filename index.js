@@ -128,10 +128,9 @@ const langText = {
 };
 
 // ==========================================
-// 🚀 BOT START (SEQUENTIAL LOGIC)
+// 🚀 BOT START (QR LINKS ONLY)
 // ==========================================
 function startBotForNumber(phoneNumber) {
-    // یوزرز کو ترتیب سے کنیکٹ کرنے کے لیے Promise کا استعمال
     return new Promise(async (resolve) => {
         const sessionFolder = `session_${phoneNumber}`;
         await downloadSession(phoneNumber);
@@ -148,67 +147,45 @@ function startBotForNumber(phoneNumber) {
             syncFullHistory: false
         });
 
-        let codeRequested = false;
-        let countdownTimer = null;
-        let isResolved = false; // اس بات کو یقینی بنانے کے لیے کہ اگلی ڈیوائس پر دو بار نہ چلا جائے
+        let isInitialized = false;
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
             
-            // ✅ GENERATE PAIRING CODE & START COUNTDOWN
-            if (qr && !sock.authState.creds.registered) {
-                if (!codeRequested) {
-                    codeRequested = true;
-                    console.log('\n===================================================');
-                    console.log(`📱 ACTION REQUIRED FOR NUMBER: [${phoneNumber}]`);
-                    
-                    try {
-                        let code = await sock.requestPairingCode(phoneNumber);
-                        let formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-                        console.log(`\n🔑 PAIRING CODE: \n👉 ${formattedCode}`);
-                        console.log(`\n(طریقہ: اپنے واٹس ایپ میں جائیں -> Linked Devices -> Link with Phone Number پر کلک کریں اور یہ کوڈ درج کریں)`);
-                        console.log('===================================================\n');
+            // ✅ GENERATE ONLY QR CODE LINK
+            if (qr) {
+                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+                console.log('\n===================================================');
+                console.log(`📱 QR CODE LINK READY FOR NUMBER: [${phoneNumber}]`);
+                console.log(`👉 LINK: ${qrImageUrl}`);
+                console.log('(Scan this code with your WhatsApp to connect)');
+                console.log('===================================================\n');
 
-                        // ⏳ 60 سیکنڈز کا کاؤنٹ ڈاؤن تاکہ آپ آرام سے کوڈ لگا سکیں
-                        let timeLeft = 60; 
-                        countdownTimer = setInterval(() => {
-                            process.stdout.write(`\r⏳ براہ کرم کوڈ لگائیں... اگلی ڈیوائس پر جانے کے لیے وقت: ${timeLeft} سیکنڈز باقی ہیں `);
-                            timeLeft--;
-                            if (timeLeft < 0) {
-                                clearInterval(countdownTimer);
-                                console.log(`\n⏰ ٹائم ختم ہوگیا [${phoneNumber}] کے لیے! اگلی ڈیوائس کو کنیکٹ کرنے جا رہے ہیں...`);
-                                if (!isResolved) { isResolved = true; resolve(); } // اگلی ڈیوائس شروع کرو
-                            }
-                        }, 1000);
-
-                    } catch (err) {
-                        console.log(`⚠️ Pairing Code Error for ${phoneNumber}:`, err.message);
-                        if (!isResolved) { isResolved = true; resolve(); }
-                    }
+                // ایک بار QR آ جائے تو لوپ کو آگے بڑھانے کے لیے ریزولو کر دیں
+                if (!isInitialized) {
+                    isInitialized = true;
+                    resolve();
                 }
             }
             
-            // ✅ JAISE HI CONNECT HOGA, LOG DEGA AUR NEXT DEVICE PAR CHALA JAYEGA
             if (connection === 'open') {
-                if (countdownTimer) clearInterval(countdownTimer); // کاؤنٹ ڈاؤن روک دو
-                console.log(`\n✅ زبردست! نمبر [${phoneNumber}] کامیابی سے کنیکٹ ہو چکا ہے! 🎉`);
+                console.log(`\n✅ >>> SUCCESS: DEVICE IS CONNECTED AND BOT IS FULLY ONLINE FOR [${phoneNumber}] <<< \n`);
                 debouncedUpload(phoneNumber);
                 
-                if (!isResolved) { 
-                    isResolved = true; 
-                    resolve(); // فوراً دوسری ڈیوائس شروع کر دے گا
+                // اگر پہلے سے کنیکٹڈ تھا تو لوپ کو آگے بھیج دیں
+                if (!isInitialized) {
+                    isInitialized = true;
+                    resolve();
                 }
             }
             
-            // 🔄 CONNECTION CLOSED HANDLING
             if (connection === 'close') {
                 const reason = lastDisconnect?.error?.output?.statusCode;
                 if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                    console.log(`⚠️ سیشن لاگ آؤٹ ہو گیا ${phoneNumber} کا. صفائی کی جا رہی ہے...`);
+                    console.log(`⚠️ Session crashed/logged out for ${phoneNumber}. Cleaning up...`);
                     if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
                 }
-                // خودکار طور پر بیک گراؤنڈ میں ری کنیکٹ کرے گا
-                startBotForNumber(phoneNumber); 
+                startBotForNumber(phoneNumber); // Auto-reconnect
             }
         });
 
@@ -226,7 +203,6 @@ function startBotForNumber(phoneNumber) {
             const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
             const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
 
-            // 1️⃣ ANY FIRST MESSAGE HANDLER
             if (!userStates[sender]) {
                 let detectedLang = 'ur'; 
                 if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
@@ -244,7 +220,6 @@ function startBotForNumber(phoneNumber) {
             const lang = userState.lang;
             const t = langText[lang];
 
-            // 🔇 IF BOT IS MUTED
             if (userState.isMuted) {
                 if (text === "bot wake up") {
                     userState.isMuted = false;
@@ -255,7 +230,6 @@ function startBotForNumber(phoneNumber) {
                 return; 
             }
 
-            // 🔙 GLOBAL BACK TO MENU
             if (text === '0' || text === 'menu') {
                 userState.step = 'WELCOME_MENU';
                 userState.invalidAttempts = 0;
@@ -263,7 +237,6 @@ function startBotForNumber(phoneNumber) {
                 return;
             }
 
-            // 🎤 USER SENDS VOICE MESSAGE
             if (msgType === 'audioMessage') {
                 await sock.sendPresenceUpdate('composing', sender);
                 try {
@@ -285,7 +258,6 @@ function startBotForNumber(phoneNumber) {
                 return;
             }
 
-            // ⌨️ MENU NAVIGATION
             if (userState.step === 'WELCOME_MENU') {
                 if (text === '1') { 
                     userState.invalidAttempts = 0;
@@ -315,7 +287,6 @@ function startBotForNumber(phoneNumber) {
                 return;
             }
 
-            // 🚀 SERVICES MENU
             if (userState.step === 'SERVICES_MENU') {
                 const categories = {
                     '1': { name: 'Website Development', demo: t.demos.web },
@@ -336,7 +307,6 @@ function startBotForNumber(phoneNumber) {
                 return;
             }
 
-            // ✅ WAITING FOR YES OR NO
             if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
                 if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
                     userState.step = 'WAITING_FOR_DETAILS';
@@ -347,7 +317,6 @@ function startBotForNumber(phoneNumber) {
                 return;
             }
 
-            // 📝 WAITING FOR CLIENT DETAILS
             if (userState.step === 'WAITING_FOR_DETAILS') {
                 const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
                 if (FIREBASE_URL) {
@@ -364,20 +333,30 @@ function startBotForNumber(phoneNumber) {
 }
 
 // ==========================================
-// 🚀 RUN BOT FOR ALL NUMBERS SEQUENTIALLY
+// 🚀 RUN BOT FOR ALL NUMBERS WITH 3 SEC DELAY
 // ==========================================
 async function startAllBots() {
-    console.log(`\n🚀 Starting initialization for ${TARGET_NUMBERS.length} numbers...`);
+    console.log(`\n🚀 Starting setup for ${TARGET_NUMBERS.length} numbers...\n`);
     
     for (let i = 0; i < TARGET_NUMBERS.length; i++) {
         const number = TARGET_NUMBERS[i];
-        console.log(`\n⏳ Checking / Initializing Bot for Number: ${number}...`);
+        console.log(`⏳ Initializing Bot for Number: [${number}]...`);
         
-        // یہاں await کی وجہ سے اگلا نمبر تب تک شروع نہیں ہوگا جب تک پہلا کنیکٹ نہ ہو جائے یا کاؤنٹ ڈاؤن ختم نہ ہو جائے
-        await startBotForNumber(number); 
+        // یہ فنکشن تب تک انتظار کرے گا جب تک QR لنک لاگز میں پرنٹ نہ ہو جائے
+        await startBotForNumber(number);
+        
+        // اگر یہ آخری نمبر نہیں ہے تو 3 سیکنڈ کا کاؤنٹ ڈاؤن شروع کرو
+        if (i < TARGET_NUMBERS.length - 1) {
+            console.log(`\n⏳ اگلا QR سکینر لنک 3 سیکنڈ میں آئے گا...`);
+            for (let c = 3; c > 0; c--) {
+                console.log(`⏱️ ${c}...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            console.log(`\n`);
+        }
     }
     
-    console.log(`\n✅ تمام نمبرز کی باری مکمل ہو چکی ہے! بوٹ رننگ پوزیشن میں ہے۔`);
+    console.log(`\n🎉 تمام ڈیوائسز کے لنکس تیار ہیں۔ اگر آپ نے کوئی نمبر کنیکٹ نہیں کیا تو اوپر دیے گئے لنکس سے کر لیں۔`);
 }
 
 startAllBots().catch(err => console.log("Critical Error: " + err));
