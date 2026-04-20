@@ -7,6 +7,21 @@ const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ==========================================
+// 🛡️ ANTI-CRASH MECHANISM (TO PREVENT SERVER REstarts)
+// ==========================================
+process.on('uncaughtException', (err) => {
+    let errStr = String(err);
+    if (errStr.includes('Unsupported state') || errStr.includes('authenticate data') || errStr.includes('bad mac')) {
+        console.log('⚠️ [ANTI-CRASH] Ignored Baileys Crypto/State Error. Bot will continue running.');
+    } else {
+        console.error('⚠️ [ANTI-CRASH] Uncaught Exception:', err);
+    }
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ [ANTI-CRASH] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// ==========================================
 // 🌐 RENDER 24/7 UPTIME SERVER
 // ==========================================
 const app = express();
@@ -73,7 +88,11 @@ async function uploadSession(phoneNumber) {
         const files = fs.readdirSync(sessionFolder);
         let sessionObj = {};
         for (const file of files) {
-            if(file.endsWith('.json')) sessionObj[file] = fs.readFileSync(path.join(sessionFolder, file), 'utf-8');
+            if(file.endsWith('.json')) {
+                try {
+                    sessionObj[file] = fs.readFileSync(path.join(sessionFolder, file), 'utf-8');
+                } catch(e) {} // Ignore read errors to prevent crash
+            }
         }
         await fetch(`${FIREBASE_URL}/sessions/${phoneNumber}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sessionObj) });
     } catch (error) {}
@@ -132,203 +151,216 @@ const langText = {
 // ==========================================
 function startBotForNumber(phoneNumber) {
     return new Promise(async (resolve) => {
-        const sessionFolder = `session_${phoneNumber}`;
-        await downloadSession(phoneNumber);
+        try {
+            const sessionFolder = `session_${phoneNumber}`;
+            await downloadSession(phoneNumber);
 
-        const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-        const { version } = await fetchLatestBaileysVersion();
+            const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+            const { version } = await fetchLatestBaileysVersion();
 
-        const sock = makeWASocket({
-            version,
-            auth: state,
-            printQRInTerminal: false, 
-            logger: pino({ level: 'silent' }),
-            browser: Browsers.ubuntu('Chrome'), 
-            syncFullHistory: false
-        });
+            const sock = makeWASocket({
+                version,
+                auth: state,
+                printQRInTerminal: false, 
+                logger: pino({ level: 'silent' }),
+                browser: Browsers.ubuntu('Chrome'), 
+                syncFullHistory: false
+            });
 
-        let isInitialized = false;
+            let isInitialized = false;
 
-        sock.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect, qr } = update;
-            
-            // ✅ GENERATE ONLY QR CODE LINK
-            if (qr) {
-                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-                console.log('\n===================================================');
-                console.log(`📱 QR CODE LINK READY FOR NUMBER: [${phoneNumber}]`);
-                console.log(`👉 LINK: ${qrImageUrl}`);
-                console.log('(Scan this code with your WhatsApp to connect)');
-                console.log('===================================================\n');
-
-                // ایک بار QR آ جائے تو لوپ کو آگے بڑھانے کے لیے ریزولو کر دیں
-                if (!isInitialized) {
-                    isInitialized = true;
-                    resolve();
-                }
-            }
-            
-            if (connection === 'open') {
-                console.log(`\n✅ >>> SUCCESS: DEVICE IS CONNECTED AND BOT IS FULLY ONLINE FOR [${phoneNumber}] <<< \n`);
-                debouncedUpload(phoneNumber);
+            sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
                 
-                // اگر پہلے سے کنیکٹڈ تھا تو لوپ کو آگے بھیج دیں
-                if (!isInitialized) {
-                    isInitialized = true;
-                    resolve();
-                }
-            }
-            
-            if (connection === 'close') {
-                const reason = lastDisconnect?.error?.output?.statusCode;
-                if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
-                    console.log(`⚠️ Session crashed/logged out for ${phoneNumber}. Cleaning up...`);
-                    if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
-                }
-                startBotForNumber(phoneNumber); // Auto-reconnect
-            }
-        });
+                // ✅ GENERATE ONLY QR CODE LINK
+                if (qr) {
+                    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+                    console.log('\n===================================================');
+                    console.log(`📱 QR CODE LINK READY FOR NUMBER: [${phoneNumber}]`);
+                    console.log(`👉 LINK: ${qrImageUrl}`);
+                    console.log('(Scan this code with your WhatsApp to connect)');
+                    console.log('===================================================\n');
 
-        sock.ev.on('creds.update', async () => {
-            await saveCreds();
-            debouncedUpload(phoneNumber);
-        });
-
-        sock.ev.on('messages.upsert', async (m) => {
-            const msg = m.messages[0];
-            if (!msg.message || msg.key.remoteJid === 'status@broadcast' || msg.key.fromMe) return;
-
-            const sender = msg.key.remoteJid;
-            const msgType = Object.keys(msg.message)[0];
-            const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
-            const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
-
-            if (!userStates[sender]) {
-                let detectedLang = 'ur'; 
-                if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
-                    detectedLang = 'en';
-                }
-
-                userStates[sender] = { step: 'WELCOME_MENU', lang: detectedLang, isMuted: false, invalidAttempts: 0 };
-                const t = langText[detectedLang];
-                
-                await sock.sendMessage(sender, { text: t.welcomeMenu });
-                return;
-            }
-
-            const userState = userStates[sender];
-            const lang = userState.lang;
-            const t = langText[lang];
-
-            if (userState.isMuted) {
-                if (text === "bot wake up") {
-                    userState.isMuted = false;
-                    userState.step = 'WELCOME_MENU';
-                    userState.invalidAttempts = 0;
-                    await sock.sendMessage(sender, { text: t.welcomeMenu });
-                }
-                return; 
-            }
-
-            if (text === '0' || text === 'menu') {
-                userState.step = 'WELCOME_MENU';
-                userState.invalidAttempts = 0;
-                await sock.sendMessage(sender, { text: t.welcomeMenu });
-                return;
-            }
-
-            if (msgType === 'audioMessage') {
-                await sock.sendPresenceUpdate('composing', sender);
-                try {
-                    let mimeType = msg.message.audioMessage.mimetype.split(';')[0] || "audio/ogg";
-                    const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
-                    
-                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
-                    const result = await model.generateContent([
-                        "Listen to the user's audio and reply naturally. Keep it under 180 characters.",
-                        { inlineData: { data: buffer.toString("base64"), mimeType: mimeType } }
-                    ]);
-                    
-                    const aiResponse = result.response.text();
-                    await sock.sendMessage(sender, { text: aiResponse }, { quoted: msg });
-                } catch (e) {
-                    console.error("Audio Process Error:", e);
-                    await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں" }, { quoted: msg });
-                }
-                return;
-            }
-
-            if (userState.step === 'WELCOME_MENU') {
-                if (text === '1') { 
-                    userState.invalidAttempts = 0;
-                    userState.step = 'SERVICES_MENU';
-                    await sock.sendMessage(sender, { text: t.servicesMenu });
-                } else if (text === '2') { 
-                    userState.invalidAttempts = 0;
-                    await sock.sendMessage(sender, { text: t.allDemos });
-                } else if (text === '3') { 
-                    userState.invalidAttempts = 0;
-                    userState.isMuted = true;
-                    await sock.sendMessage(sender, { text: t.humanMute });
-                } else if (text === '4') { 
-                    userState.invalidAttempts = 0;
-                    userState.lang = lang === 'en' ? 'ur' : 'en'; 
-                    const newLang = userState.lang;
-                    await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
-                } else {
-                    userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
-                    if (userState.invalidAttempts >= 3) {
-                        userState.isMuted = true;
-                        await sock.sendMessage(sender, { text: t.autoMuted });
-                    } else {
-                        await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.welcomeMenu}` });
+                    if (!isInitialized) {
+                        isInitialized = true;
+                        resolve();
                     }
                 }
-                return;
-            }
-
-            if (userState.step === 'SERVICES_MENU') {
-                const categories = {
-                    '1': { name: 'Website Development', demo: t.demos.web },
-                    '2': { name: 'App & Game Development', demo: t.demos.app },
-                    '3': { name: 'Graphics Designing', demo: t.demos.graphics },
-                    '4': { name: 'Advertisement & Marketing', demo: t.demos.ads },
-                    '5': { name: 'WhatsApp Bot Development', demo: t.demos.bot }
-                };
-
-                if (categories[text]) {
-                    userState.invalidAttempts = 0;
-                    userState.step = 'WAITING_FOR_ORDER_CONFIRM';
-                    userState.category = categories[text].name;
-                    await sock.sendMessage(sender, { text: categories[text].demo });
-                } else {
-                    await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.servicesMenu}` });
+                
+                if (connection === 'open') {
+                    console.log(`\n✅ >>> SUCCESS: DEVICE IS CONNECTED AND BOT IS FULLY ONLINE FOR [${phoneNumber}] <<< \n`);
+                    debouncedUpload(phoneNumber);
+                    
+                    if (!isInitialized) {
+                        isInitialized = true;
+                        resolve();
+                    }
                 }
-                return;
-            }
-
-            if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
-                if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
-                    userState.step = 'WAITING_FOR_DETAILS';
-                    await sock.sendMessage(sender, { text: t.askDetails });
-                } else {
-                    await sock.sendMessage(sender, { text: t.confirmPrompt });
+                
+                if (connection === 'close') {
+                    const reason = lastDisconnect?.error?.output?.statusCode;
+                    if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 403) {
+                        console.log(`⚠️ Session logged out for ${phoneNumber}. Cleaning up...`);
+                        if (fs.existsSync(sessionFolder)) fs.rmSync(sessionFolder, { recursive: true, force: true });
+                    } else {
+                        console.log(`🔄 Connection dropped for ${phoneNumber}. Reconnecting automatically...`);
+                    }
+                    setTimeout(() => startBotForNumber(phoneNumber), 3000); // Auto-reconnect with short delay
                 }
-                return;
-            }
+            });
 
-            if (userState.step === 'WAITING_FOR_DETAILS') {
-                const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
-                if (FIREBASE_URL) {
-                    try {
-                        await fetch(`${FIREBASE_URL}/leads.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) });
-                    } catch (error) {}
+            sock.ev.on('creds.update', async () => {
+                try {
+                    await saveCreds();
+                    debouncedUpload(phoneNumber);
+                } catch(err) {
+                    // Ignore creds error to prevent crash
                 }
-                userState.step = 'WELCOME_MENU'; 
-                await sock.sendMessage(sender, { text: t.orderConfirmed });
-                return;
-            }
-        });
+            });
+
+            sock.ev.on('messages.upsert', async (m) => {
+                try {
+                    const msg = m.messages[0];
+                    if (!msg.message || msg.key.remoteJid === 'status@broadcast' || msg.key.fromMe) return;
+
+                    const sender = msg.key.remoteJid;
+                    const msgType = Object.keys(msg.message)[0];
+                    const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase().trim();
+                    const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || ""; 
+
+                    if (!userStates[sender]) {
+                        let detectedLang = 'ur'; 
+                        if (/hi|hello|hey|english/i.test(text) && !/[\u0600-\u06FF]/.test(text) && !/salam|assalam/i.test(text)) {
+                            detectedLang = 'en';
+                        }
+
+                        userStates[sender] = { step: 'WELCOME_MENU', lang: detectedLang, isMuted: false, invalidAttempts: 0 };
+                        const t = langText[detectedLang];
+                        
+                        await sock.sendMessage(sender, { text: t.welcomeMenu });
+                        return;
+                    }
+
+                    const userState = userStates[sender];
+                    const lang = userState.lang;
+                    const t = langText[lang];
+
+                    if (userState.isMuted) {
+                        if (text === "bot wake up") {
+                            userState.isMuted = false;
+                            userState.step = 'WELCOME_MENU';
+                            userState.invalidAttempts = 0;
+                            await sock.sendMessage(sender, { text: t.welcomeMenu });
+                        }
+                        return; 
+                    }
+
+                    if (text === '0' || text === 'menu') {
+                        userState.step = 'WELCOME_MENU';
+                        userState.invalidAttempts = 0;
+                        await sock.sendMessage(sender, { text: t.welcomeMenu });
+                        return;
+                    }
+
+                    if (msgType === 'audioMessage') {
+                        await sock.sendPresenceUpdate('composing', sender);
+                        try {
+                            let mimeType = msg.message.audioMessage.mimetype.split(';')[0] || "audio/ogg";
+                            const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
+                            
+                            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: AI_PROMPT });
+                            const result = await model.generateContent([
+                                "Listen to the user's audio and reply naturally. Keep it under 180 characters.",
+                                { inlineData: { data: buffer.toString("base64"), mimeType: mimeType } }
+                            ]);
+                            
+                            const aiResponse = result.response.text();
+                            await sock.sendMessage(sender, { text: aiResponse }, { quoted: msg });
+                        } catch (e) {
+                            console.error("Audio Process Error:", e);
+                            await sock.sendMessage(sender, { text: "👉 مینو میں واپس جانے کے لیے 0 لکھیں" }, { quoted: msg });
+                        }
+                        return;
+                    }
+
+                    if (userState.step === 'WELCOME_MENU') {
+                        if (text === '1') { 
+                            userState.invalidAttempts = 0;
+                            userState.step = 'SERVICES_MENU';
+                            await sock.sendMessage(sender, { text: t.servicesMenu });
+                        } else if (text === '2') { 
+                            userState.invalidAttempts = 0;
+                            await sock.sendMessage(sender, { text: t.allDemos });
+                        } else if (text === '3') { 
+                            userState.invalidAttempts = 0;
+                            userState.isMuted = true;
+                            await sock.sendMessage(sender, { text: t.humanMute });
+                        } else if (text === '4') { 
+                            userState.invalidAttempts = 0;
+                            userState.lang = lang === 'en' ? 'ur' : 'en'; 
+                            const newLang = userState.lang;
+                            await sock.sendMessage(sender, { text: langText[newLang].welcomeMenu });
+                        } else {
+                            userState.invalidAttempts = (userState.invalidAttempts || 0) + 1;
+                            if (userState.invalidAttempts >= 3) {
+                                userState.isMuted = true;
+                                await sock.sendMessage(sender, { text: t.autoMuted });
+                            } else {
+                                await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.welcomeMenu}` });
+                            }
+                        }
+                        return;
+                    }
+
+                    if (userState.step === 'SERVICES_MENU') {
+                        const categories = {
+                            '1': { name: 'Website Development', demo: t.demos.web },
+                            '2': { name: 'App & Game Development', demo: t.demos.app },
+                            '3': { name: 'Graphics Designing', demo: t.demos.graphics },
+                            '4': { name: 'Advertisement & Marketing', demo: t.demos.ads },
+                            '5': { name: 'WhatsApp Bot Development', demo: t.demos.bot }
+                        };
+
+                        if (categories[text]) {
+                            userState.invalidAttempts = 0;
+                            userState.step = 'WAITING_FOR_ORDER_CONFIRM';
+                            userState.category = categories[text].name;
+                            await sock.sendMessage(sender, { text: categories[text].demo });
+                        } else {
+                            await sock.sendMessage(sender, { text: `${t.invalidOption}\n\n${t.servicesMenu}` });
+                        }
+                        return;
+                    }
+
+                    if (userState.step === 'WAITING_FOR_ORDER_CONFIRM') {
+                        if (text.includes('yes') || text.includes('y') || text.includes('ہاں') || text.includes('haan')) {
+                            userState.step = 'WAITING_FOR_DETAILS';
+                            await sock.sendMessage(sender, { text: t.askDetails });
+                        } else {
+                            await sock.sendMessage(sender, { text: t.confirmPrompt });
+                        }
+                        return;
+                    }
+
+                    if (userState.step === 'WAITING_FOR_DETAILS') {
+                        const newLead = { phone: sender.split('@')[0], service: userState.category, requirement: rawText, timestamp: new Date().toISOString() };
+                        if (FIREBASE_URL) {
+                            try {
+                                await fetch(`${FIREBASE_URL}/leads.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) });
+                            } catch (error) {}
+                        }
+                        userState.step = 'WELCOME_MENU'; 
+                        await sock.sendMessage(sender, { text: t.orderConfirmed });
+                        return;
+                    }
+                } catch(error) {
+                    console.log("⚠️ Error processing message:", error);
+                }
+            });
+        } catch (error) {
+            console.log("⚠️ Fatal error in startBotForNumber:", error);
+            setTimeout(() => startBotForNumber(phoneNumber), 5000); // Re-attempt on critical failure
+        }
     });
 }
 
